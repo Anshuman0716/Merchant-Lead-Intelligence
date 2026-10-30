@@ -1,0 +1,31 @@
+# Polite crawler settings. Only public pages, robots.txt respected, no logins/forms/checkout.
+user_agent: "LeadIntelBot/0.1 (+https://github.com/YOUR_GITHUB/p1-lead-intelligence; research crawler, public pages only)"
+timeout_seconds: 10
+retries: 2
+min_delay_per_domain_seconds: 2.0
+concurrent_domains: 10
+max_pages_per_domain: 5
+# Fall back to a headless browser when static HTML looks like a JS shell
+playwright_fallback:
+  enabled: false
+  min_html_bytes: 5000
+reachability:
+  timeout_seconds: 5
+  concurrency: 20
+# Pages to fetch per domain. "home" is always fetched first; "product" is discovered from links.
+pages:
+  home: "/"
+  product: null          # first internal link matching product_link_patterns
+  cart: "/cart"
+  pricing: "/pricing"
+  contact: "/contact"
+product_link_patterns:
+  - "/products/"
+  - "/product/"
+  - "/course"
+  - "/shop"
+  - "/collections/"
+contact_fallback_paths:
+  - "/contact-us"
+  - "/pages/contact"
+  - "/pages/contact-us"
