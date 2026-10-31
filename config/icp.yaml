@@ -1,0 +1,108 @@
+# ICP scoring config. Each company is scored on the ICP that matches its vertical.
+# Score = sum of weights of the signals that are true, clipped to 0-100.
+# Every weight here should be explainable out loud: see docs/icp_personas.md.
+
+vertical_to_icp:
+  d2c: d2c_growth
+  edtech: edtech_subscription
+  saas: saas_global
+
+tiers:          # score >= threshold
+  A: 40   # was 65; lowered after sanity review (see README "Tuning log")
+  B: 25   # was 40
+recent_funding_months: 18
+
+# Plain-English reason shown to the SDR when a signal contributes. {placeholders} come from signals.
+signals:
+  competitor_gateway:
+    reason: "Uses {gateway} ({confidence} confidence) — a known, replaceable setup"
+  single_gateway:
+    reason: "Only one gateway detected ({gateway}) — pitch a backup route"
+  uses_cashfree:
+    reason: "Already on Cashfree — route to account manager, not SDR"
+  checkout_layer:
+    reason: "Pays for a 3rd-party checkout ({layer}) — cares about conversion"
+  subscription:
+    reason: "Sells subscriptions / recurring plans"
+  international:
+    reason: "Sells to international customers"
+  recent_funding:
+    reason: "Raised {funding_stage} funding in the last 18 months"
+  shopify_woo:
+    reason: "On {platform} — plugin integration in a day"
+  mobile_app:
+    reason: "Has a mobile app — higher transaction volume"
+  cod:
+    reason: "Offers cash on delivery — prepaid-conversion pitch"
+  emi:
+    reason: "Offers EMI / instalments — high-ticket payments to collect"
+  pricing_page:
+    reason: "Public pricing page — self-serve online payments"
+  contact_email:
+    reason: "Public business email found — reachable"
+  seed_only:
+    reason: "Website blocks automated checks — research manually before calling"
+
+icps:
+  d2c_growth:
+    label: "D2C growth brand"
+    buyer: "Founder / Head of Growth"
+    base_products: ["Payment Gateway"]
+    weights:
+      competitor_gateway: 20
+      single_gateway: 10
+      uses_cashfree: -30
+      checkout_layer: 10
+      subscription: 10
+      international: 10
+      recent_funding: 20
+      shopify_woo: 10
+      mobile_app: 5
+      cod: 5
+      emi: 5
+      pricing_page: 0
+      contact_email: 5
+  edtech_subscription:
+    label: "Edtech with recurring fees"
+    buyer: "Founder / CFO / Head of Product"
+    base_products: ["Payment Gateway", "Payment Links"]
+    weights:
+      competitor_gateway: 15
+      single_gateway: 10
+      uses_cashfree: -30
+      checkout_layer: 0
+      subscription: 25
+      international: 5
+      recent_funding: 15
+      shopify_woo: 0
+      mobile_app: 10
+      cod: 0
+      emi: 15
+      pricing_page: 5
+      contact_email: 5
+  saas_global:
+    label: "Indian SaaS selling abroad"
+    buyer: "CFO / Head of Finance"
+    base_products: ["Cross-border Collections", "Payment Gateway"]
+    weights:
+      competitor_gateway: 10
+      single_gateway: 5
+      uses_cashfree: -30
+      checkout_layer: 0
+      subscription: 20
+      international: 30
+      recent_funding: 15
+      shopify_woo: 0
+      mobile_app: 0
+      cod: 0
+      emi: 0
+      pricing_page: 5
+      contact_email: 5
+
+# Signal -> extra product to suggest (in priority order, max 3 products per lead)
+product_map:
+  subscription: "Subscriptions (UPI Autopay / e-mandate)"
+  international: "Cross-border Collections"
+  emi: "EMI / Pay Later"
+  cod: "Payment Links (COD-to-prepaid)"
+  single_gateway: "Payment Gateway (backup route)"

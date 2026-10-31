@@ -74,6 +74,7 @@ class Signals(pa.DataFrameModel):
     has_subscription: bool
     has_international: bool
     has_cod: bool
+    has_emi: bool
     has_android_app: bool
     has_ios_app: bool
     has_pricing_page: bool
@@ -98,6 +99,7 @@ class LeadScores(pa.DataFrameModel):
     bant_timeline: str
     suggested_products: pl.List(pl.Utf8)
     opener: str = pa.Field(str_length={"min_value": 1})
+    data_coverage: str = pa.Field(isin=["website", "seed_only"])
     scored_at: pl.Datetime
 
     class Config:

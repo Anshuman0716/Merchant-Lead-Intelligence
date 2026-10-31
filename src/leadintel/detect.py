@@ -137,6 +137,7 @@ class DomainSignals:
     has_subscription: bool = False
     has_international: bool = False
     has_cod: bool = False
+    has_emi: bool = False
     has_android_app: bool = False
     has_ios_app: bool = False
     has_pricing_page: bool = False
@@ -192,7 +193,7 @@ def detect_domain(
 
     feats = rules["features"]
     for attr, key in [("has_subscription", "subscription"), ("has_international", "international"),
-                      ("has_cod", "cod"), ("has_android_app", "android_app"),
+                      ("has_cod", "cod"), ("has_emi", "emi"), ("has_android_app", "android_app"),
                       ("has_ios_app", "ios_app")]:  # fmt: skip
         if m := best_match(feats[key], pages):
             setattr(s, attr, True)

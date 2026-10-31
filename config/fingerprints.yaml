@@ -111,6 +111,13 @@ features:
       - '\bships? to \d+\+? countries\b'
       - '(?:us\$|\busd)\s?\d'
       - '\$\s?\d'
+  emi:
+    text:
+      - 'no[- ]cost emi'
+      - '\bemi (?:options?|available|starting|from|plans?)\b'
+      - '\beasy emis?\b'
+      - '\b(?:pay|split) in \d+ (?:easy )?instal?lments\b'
+      - '\binstal?lment plans?\b'
   cod:
     text: ['\bcash on delivery\b', '\bcod (?:available|option|charges|orders)\b', '\bpay on delivery\b']
   android_app:
