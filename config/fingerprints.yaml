@@ -1,0 +1,133 @@
+# Fingerprint rules. Each rule lists patterns by WHERE they are searched:
+#   script : substring in <script src>, inline <script> text, <link href>, <iframe src>
+#   html   : substring anywhere in raw HTML
+#   links  : substring in <a href> URLs
+#   img    : substring in <img src/alt/title> or <svg><title>
+#   text   : regex on visible page text (lowercased)
+# All matching is on lowercased content.
+#
+# Gateway evidence levels (stored as gateway_confidence):
+#   high   = the gateway's own script/SDK is on the page
+#   medium = a checkout layer that is known to run on that gateway (e.g. Razorpay Magic Checkout)
+#   low    = gateway named only in visible text or a payment-logo image
+#
+# A rule never matches on the vendor's own site (chargebee.com is not "using Chargebee").
+#
+# Verified against cached pages (see README "Fingerprint verification"). Notes from that pass:
+#  - "paypal" appears on every Shopify page (shopifyPayPalV4VisibilityTracking) -> only match the SDK URL
+#  - Paytm/PhonePe appear as UPI-app icons and promo names ("PhonePe flat 20% off") -> script-only rules
+#  - "magic-checkout" alone also matched an unrelated getbob.link script -> Razorpay domain only
+#  - Razorpay payment links (rzp.io) found on edtech/creator sites -> links rule
+#  - "stripe" is a common product word (striped shirts) -> text rule needs "powered by stripe"
+
+platforms:  # first match wins, in this order
+  shopify:
+    html: ["cdn.shopify.com", "shopify.theme", ".myshopify.com", "/cdn/shopifycloud/"]
+  woocommerce:
+    html: ["wp-content/plugins/woocommerce", "woocommerce-page", "wc-ajax=", "woocommerce-no-js"]
+  magento:
+    html: ["x-magento-init", "mage/cookies", "magento_ui/", "mage-cache-sessid", "magento_theme"]
+
+gateways:
+  razorpay:
+    script: ["checkout.razorpay.com", "cdn.razorpay.com/static/", "api.razorpay.com"]
+    links: ["rzp.io/", "razorpay.me/", "pages.razorpay.com"]
+    img: ["razorpay"]
+    text: ['\brazorpay\b']
+  cashfree:
+    script: ["sdk.cashfree.com", "payments.cashfree.com", "cashfree.com/assets/cashfree", "cashfree.sdk"]
+    img: ["cashfree"]
+    text: ['\bcashfree\b']
+  payu:
+    script: ["secure.payu.in", "jssdk.payu.in", "payumoney.com", "checkout-static.citruspay.com"]
+    img: ["payu"]
+    text: ['\bpayu\b', '\bpayumoney\b']
+  stripe:
+    script: ["js.stripe.com", "checkout.stripe.com", "buy.stripe.com"]
+    links: ["buy.stripe.com", "checkout.stripe.com"]
+    text: ['powered by stripe', 'payments? (?:are )?processed by stripe']
+  paytm:
+    script: ["securegw.paytm.in", "secure.paytmpayments.com", "/merchantpgpui/checkoutjs"]
+  phonepe:
+    script: ["mercury.phonepe.com", "api.phonepe.com/apis/pg", "mercury-t2.phonepe.com"]
+  ccavenue:
+    script: ["ccavenue.com"]
+    img: ["ccavenue"]
+    text: ['\bccavenue\b']
+  juspay:
+    script: ["juspay.in", "hyperservices"]
+    text: ['\bjuspay\b']
+  easebuzz:
+    script: ["easebuzz.in"]
+    img: ["easebuzz"]
+    text: ['\beasebuzz\b']
+  billdesk:
+    script: ["billdesk.com"]
+    img: ["billdesk"]
+    text: ['\bbilldesk\b']
+  paypal:
+    script: ["paypal.com/sdk/js", "paypalobjects.com/api/checkout"]
+  instamojo:
+    script: ["js.instamojo.com", "instamojo.com/js"]
+    links: ["imjo.in/", "instamojo.com/@"]
+    text: ['\binstamojo\b']
+  paddle:
+    script: ["cdn.paddle.com"]
+  zaakpay:
+    script: ["zaakpay.com"]
+
+checkout_layers:  # first match wins, in this order
+  razorpay_magic:
+    script: ["magic-plugins.razorpay.com", "razorpaymagiccheckoutconfig"]
+    implies_gateway: razorpay
+  gokwik:
+    script: ["gokwik.co"]
+  shiprocket:
+    script: ["fastrr", "checkout-ui.shiprocket", "shiprocket.in/checkout", "pickrr.com"]
+  shopflo:
+    script: ["shopflo.co", "shopflo.com"]
+  chargebee:
+    script: ["js.chargebee.com", "chargebee.com/v2/chargebee.js"]
+
+features:
+  subscription:
+    script: ["rechargecdn.com", "rechargepayments.com", "appstle", "sealsubscriptions", "loopwork.co",
+             "boldapps.net/subscriptions", "recurpay.com", "js.chargebee.com", "subscriptions.zoho"]
+    text:
+      - 'subscribe\s*(?:&|and)\s*save'
+      - '\b(?:monthly|annual|yearly|quarterly) (?:plan|subscription)s?\b'
+      - '\bsubscription plans?\b'
+      - '\bauto[- ]?renew'
+      - '\bbilled (?:monthly|annually|yearly)\b'
+      - 'per (?:user|seat|agent|month)\s*(?:/|per)\s*month'
+      - '/\s*(?:user|seat|agent)\s*/\s*(?:mo|month)\b'
+      - '\bcancel anytime\b'
+  international:
+    text:
+      - '\bships? worldwide\b'
+      - '\bworldwide (?:shipping|delivery)\b'
+      - '\binternational (?:shipping|delivery|orders)\b'
+      - '\bship(?:ping)? internationally\b'
+      - '\bships? to \d+\+? countries\b'
+      - '(?:us\$|\busd)\s?\d'
+      - '\$\s?\d'
+  cod:
+    text: ['\bcash on delivery\b', '\bcod (?:available|option|charges|orders)\b', '\bpay on delivery\b']
+  android_app:
+    links: ["play.google.com/store/apps"]
+  ios_app:
+    links: ["apps.apple.com", "itunes.apple.com"]
+
+# Business emails we keep: only on the company's own domain AND with a role-style mailbox
+# (never personal-looking addresses). Earlier entries are preferred.
+contact_email_prefixes: [sales, business, partnerships, partner, bd, hello, contact, connect, info,
+                         enquiry, enquiries, support, care, customercare, help, wecare, cs]
+
+# Low-confidence gateway evidence (visible text / logos) is only trusted in a payment context.
+# Without this, hiring-partner logos ("Razorpay logo" on edtech sites), testimonials and
+# founder bios ("CEO of Cashfree Payments") were counted as gateways.
+gateway_low_confidence:
+  text_context: 'payment|checkout|gateway|secured by|powered by|refund|we accept|pay (?:via|using|with)'
+  context_chars_before: 60
+  context_chars_after: 30
+  img_must_contain: "payment"
