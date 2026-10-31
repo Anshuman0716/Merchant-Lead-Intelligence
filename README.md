@@ -6,7 +6,7 @@ Takes 300–500 Indian online businesses (D2C, edtech, SaaS), detects their paym
 public website signals, scores them against 3 ICPs, and outputs a tiered, CRM-ready lead list
 with personalised openers — plus a dashboard and a one-page insight note.
 
-🚧 Work in progress — Phases 0–3 done (universe, crawler, signal detection, scoring).
+🚧 Work in progress — Phases 0–4 done (universe, crawler, detection, scoring, dashboard, sales docs).
 
 ## How to run
 
@@ -19,6 +19,35 @@ make test
 
 Stages can be run alone: `uv run python -m leadintel.run --only crawl`, `--from detect`,
 `--refresh` (re-fetch cached pages), `--limit 10`.
+
+## Dashboard
+
+`make app` (or `uv run streamlit run app/Home.py`) opens four pages, each answering an SDR question:
+
+| Page | Question it answers |
+|---|---|
+| Overview | How big is my opportunity? Tier counts, payment-stack KPIs, score distribution, call-first list |
+| Lead Explorer | Who do I call today? Filters (vertical, tier, platform, gateway, checkout layer, city, funding), CSV download |
+| Competitor Landscape | Who am I up against, and where? Gateway and checkout-layer share, competitor × vertical heatmap |
+| Lead Detail | What do I say? Score gauge, top 3 reasons, copyable opener, BANT, every signal with its evidence |
+
+The app reads `exports/leads.parquet` (committed), not the DuckDB file, so it deploys light.
+Lead pages are shareable: `/Lead_Detail?domain=livpure.com`.
+
+## Sales artefacts
+
+- [`docs/icp_personas.md`](docs/icp_personas.md): 3 ICP one-pagers
+- [`docs/cold_emails.md`](docs/cold_emails.md): 20 cold emails for Tier A leads (under 120 words each)
+- [`docs/insight_note.pdf`](docs/insight_note.pdf): one-page findings, built from the data by
+  `uv run --with reportlab python scripts/build_insight_note.py`
+
+## HubSpot import
+
+`exports/hubspot_companies.csv` maps to HubSpot companies. First create these custom company
+properties (Settings → Properties → Company): **Vertical**, **Lead tier**, **ICP score** (number),
+**Current gateway**, **Checkout layer**, **Suggested products**, **Top reasons**, **Opener**
+(multi-line text). Then go to Import → Companies → map columns. Name, domain, Industry, City and
+Country/Region map to built-in fields. The deal pipeline for 20 Tier A leads is simulated.
 
 ## Pipeline
 
