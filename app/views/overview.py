@@ -5,15 +5,22 @@ import streamlit as st
 from common import (
     COMPETITORS,
     EXPLORER,
-    SINGLE,
+    GOOD,
+    MUTED,
+    PRIMARY,
     TIER_COLORS,
     TIER_MEANING,
     TIERS,
     VERTICALS,
-    kpi,
+    WARN,
+    hbar,
+    kpi_row,
+    last_outcomes,
+    lead_row,
     load_leads,
     open_lead,
     reset_filters,
+    section,
     style_fig,
 )
 
@@ -26,59 +33,41 @@ st.markdown(
     f"""<div class="hero">
       <div class="eyebrow">Payments SDR workspace</div>
       <div class="title">Merchant Lead Intelligence</div>
-      <div class="sub">Which merchants to call first, why, and what to say — built from public
-        website signals on {n} Indian D2C, edtech and SaaS businesses.</div>
-      <div class="pills">
-        <span class="pill">{int(counts.get("A", 0))} Tier A leads ready to call</span>
-        <span class="pill">{len(crawled)} websites analysed</span>
-        <span class="pill">Scored {df["scored_at"].max():%d %b %Y}</span>
-      </div>
+      <div class="line"></div>
+      <div class="sub">Which merchants to call first, why, and what to say. Built from public
+        website signals on {n:,} Indian D2C, edtech and SaaS businesses.</div>
     </div>""",
     unsafe_allow_html=True,
 )
 
 # ---- Quick actions ----
 a = st.columns(3)
-if a[0].button("📞  Open today's Tier A call list", type="primary", use_container_width=True):
+if a[0].button("Tier A call list", type="primary", use_container_width=True,
+               icon=":material/call:"):  # fmt: skip
     reset_filters(f_tier=["A"])
     st.switch_page(EXPLORER)
-if a[1].button("🎯  Brief for the #1 lead", use_container_width=True):
+if a[1].button("Top lead brief", use_container_width=True, icon=":material/target:"):
     open_lead(df.iloc[0]["domain"])
-if a[2].button("🧭  See who we're competing with", use_container_width=True):
+if a[2].button("Competitors", use_container_width=True, icon=":material/explore:"):
     st.switch_page(COMPETITORS)
 
-# ---- Lead KPIs ----
-st.markdown("### Pipeline")
-c = st.columns(4)
-kpi(c[0], "Leads scored", n, "D2C · Edtech · SaaS", accent="#52514e")
-for col, t in zip(c[1:], TIERS, strict=True):
-    k = int(counts.get(t, 0))
-    kpi(col, f"Tier {t}", k, f"{k / n:.0%} of leads · {TIER_MEANING[t].lower()}",
-        accent=TIER_COLORS[t])  # fmt: skip
+# ---- Pipeline ----
+section("Pipeline", f"{n:,} leads scored · {len(crawled):,} websites analysed")
+kpi_row(
+    [("Leads scored", f"{n:,}", "D2C · Edtech · SaaS", MUTED)]
+    + [
+        (
+            f"Tier {t}",
+            f"{int(counts.get(t, 0)):,}",
+            f"{counts.get(t, 0) / n:.0%} of leads · {TIER_MEANING[t].lower()}",
+            TIER_COLORS[t],
+        )
+        for t in TIERS
+    ]  # fmt: skip
+)
 
-
-# ---- Payment stack KPIs ----
-def share(mask) -> str:
-    return f"{mask.mean():.0%}" if len(mask) else "—"
-
-
-st.markdown("### Payment stack seen on public pages")
-strong_gw = crawled["gateway_confidence"].isin(["high", "medium"])
-c = st.columns(4)
-kpi(c[0], "Gateway visible", share(strong_gw), "high/medium confidence — a floor",
-    help="Gateways usually load only at the final payment step, so this is a minimum.")  # fmt: skip
-kpi(c[1], "Use a checkout layer", share(crawled["checkout_layer"].notna()),
-    "GoKwik, Razorpay Magic, Shopflo…")  # fmt: skip
-kpi(c[2], "Sell subscriptions", share(crawled["has_subscription"].fillna(False).astype(bool)),
-    "recurring plans or renewals")  # fmt: skip
-kpi(c[3], "Sell internationally", share(crawled["has_international"].fillna(False).astype(bool)),
-    "overseas shipping or USD pricing")  # fmt: skip
-
-st.write("")
-
-# ---- Charts ----
-left, right = st.columns([1.1, 1])
-with left, st.container(border=True):
+left, right = st.columns(2, gap="medium")
+with left, st.container(border=True, height=380):
     tv = df.groupby(["vertical_label", "tier"]).size().unstack(fill_value=0)
     fig = go.Figure()
     for t in TIERS:
@@ -89,49 +78,72 @@ with left, st.container(border=True):
             hovertemplate="%{y} · Tier " + t + ": <b>%{x}</b> leads<extra></extra>",
         )  # fmt: skip
     fig.update_layout(barmode="stack", title="Leads by vertical and tier")
-    fig.update_yaxes(autorange="reversed")
-    st.plotly_chart(style_fig(fig), use_container_width=True, theme=None)
+    fig.update_yaxes(autorange="reversed", showgrid=False)
+    st.plotly_chart(style_fig(fig, height=330), use_container_width=True, theme=None)
 
-with right, st.container(border=True):
+with right, st.container(border=True, height=380):
     fig = go.Figure(
         go.Histogram(
-            x=df["score"], xbins=dict(start=0, end=105, size=5), marker_color=SINGLE,
+            x=df["score"], xbins=dict(start=0, end=105, size=5), marker_color=PRIMARY,
             marker_line=dict(color="#ffffff", width=2),
             hovertemplate="Score %{x}: <b>%{y}</b> leads<extra></extra>",
         )
     )  # fmt: skip
     for thr, label in [(25, "Tier B ≥ 25"), (40, "Tier A ≥ 40")]:
-        fig.add_vline(x=thr, line=dict(color="#52514e", width=1, dash="dot"),
+        fig.add_vline(x=thr, line=dict(color="#334155", width=1, dash="dot"),
                       annotation_text=label, annotation_position="top right",
-                      annotation_font_color="#52514e")  # fmt: skip
+                      annotation_font_color="#334155")  # fmt: skip
     fig.update_layout(title="Score distribution")
-    fig.update_xaxes(title="ICP score (0–100)")
+    fig.update_xaxes(title="ICP score (0–100)", showgrid=False)
     fig.update_yaxes(title="Leads")
-    st.plotly_chart(style_fig(fig, legend=False), use_container_width=True, theme=None)
+    st.plotly_chart(style_fig(fig, height=330, legend=False), use_container_width=True, theme=None)
+
+
+# ---- Payment stack ----
+def share(mask) -> str:
+    return f"{mask.mean():.0%}" if len(mask) else "—"
+
+
+section("Payment stack", "What is visible on public pages of crawled sites")
+strong_gw = crawled["gateway_confidence"].isin(["high", "medium"])
+kpi_row([
+    ("Gateway visible", share(strong_gw), "high/medium confidence · a floor", PRIMARY,
+     "Gateways usually load only at the final payment step, so this is a minimum."),
+    ("Checkout layer", share(crawled["checkout_layer"].notna()), "GoKwik, Magic, Shopflo…",
+     "#14b8a6"),
+    ("Subscriptions", share(crawled["has_subscription"].fillna(False).astype(bool)),
+     "recurring plans or renewals", WARN),
+    ("International", share(crawled["has_international"].fillna(False).astype(bool)),
+     "overseas shipping or USD pricing", GOOD),
+])  # fmt: skip
+
+left, right = st.columns(2, gap="medium")
+with left, st.container(border=True, height=380):
+    gw = crawled["gateway_names"].explode().dropna().value_counts().head(8)
+    if gw.empty:
+        st.info("No gateway visible yet.")
+    else:
+        st.plotly_chart(hbar(gw, "Gateways seen (top 8)", len(crawled)),
+                        use_container_width=True, theme=None)  # fmt: skip
+with right, st.container(border=True, height=380):
+    layers = crawled["checkout_layer_name"].dropna().value_counts()
+    if layers.empty:
+        st.info("No checkout layer visible yet.")
+    else:
+        st.plotly_chart(hbar(layers, "Checkout layers seen", len(crawled), color="#14b8a6"),
+                        use_container_width=True, theme=None)  # fmt: skip
 
 # ---- Call first ----
-st.markdown("### Call these first")
+section("Call these first", "Top Tier A leads by score")
 vert = st.segmented_control("Vertical", ["All", *VERTICALS], default="All", key="ov_vertical",
                             label_visibility="collapsed")  # fmt: skip
 top = df[df["tier"] == "A"]
 if vert and vert != "All":
     top = top[top["vertical_label"] == vert]
 top = top.head(10)
-st.caption("Top Tier A leads by score. **Click a row** to open its full call brief.")
 if top.empty:
-    st.info("No Tier A leads in this vertical yet — try Tier B in the Lead Explorer.")
+    st.info("No Tier A leads in this vertical yet. Try Tier B in the Lead Explorer.")
 else:
-    event = st.dataframe(
-        top[["name", "vertical_label", "score", "top_reason", "opener"]],
-        hide_index=True, use_container_width=True, on_select="rerun", selection_mode="single-row",
-        key=f"top_table_{vert}",
-        column_config={
-            "name": st.column_config.TextColumn("Company", pinned=True),
-            "vertical_label": "Vertical",
-            "score": st.column_config.ProgressColumn("Score", min_value=0, max_value=100, format="%d"),
-            "top_reason": st.column_config.TextColumn("Why call", width="large"),
-            "opener": st.column_config.TextColumn("Suggested opener", width="large"),
-        },
-    )  # fmt: skip
-    if event.selection.rows:
-        open_lead(top.iloc[event.selection.rows[0]]["domain"])
+    logged = last_outcomes()
+    for i, (_, lead) in enumerate(top.iterrows(), start=1):
+        lead_row(lead, i, key=f"ov_{vert}", last_call=logged.get(lead["domain"], ""))

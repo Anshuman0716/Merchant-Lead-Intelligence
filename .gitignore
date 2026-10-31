@@ -9,3 +9,4 @@ data/cache/
 .env
 .DS_Store
 .claude/
+data/sdr/

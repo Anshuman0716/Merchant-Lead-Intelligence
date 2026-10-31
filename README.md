@@ -17,7 +17,7 @@ to say.
 
 ## What it does
 
-- **Builds a merchant universe:** 408 Indian D2C, edtech and SaaS businesses, cleaned and
+- **Builds a merchant universe:** 1,072 Indian D2C, edtech and SaaS businesses, cleaned and
   deduplicated. Bad rows are quarantined with a reason, never deleted.
 - **Detects each merchant's payment setup from public pages:** platform, payment gateway (with an
   evidence level), checkout layer, subscriptions, international sales, COD, EMI, apps and a public
@@ -31,31 +31,31 @@ to say.
 
 | | |
 |---|---|
-| Merchants | 408 seeded → **364 valid** (202 D2C, 81 edtech, 81 SaaS) + 25 bot-blocked scored on seed data |
-| Leads | **389 scored: Tier A 55 (14%) · B 123 (32%) · C 211 (54%)** |
-| Pages crawled | 1,221 public pages from 362 sites (robots.txt respected) |
-| Platform | Shopify 154 · WooCommerce 5 · custom 204 |
-| Checkout layer visible | 38% of sites (GoKwik 90, Razorpay Magic 20, Shiprocket 15, Shopflo 13) |
-| Gateway visible | 9% of sites. Gateways load at the payment step, so this is a floor |
+| Merchants | 1,072 seeded → **942 valid** (505 D2C, 198 edtech, 239 SaaS) + 53 bot-blocked scored on seed data |
+| Leads | **995 scored: Tier A 139 (14%) · B 241 (24%) · C 615 (62%)** |
+| Pages crawled | 4,300+ public page fetches from 934 sites (robots.txt respected) |
+| Platform | Shopify 313 · WooCommerce 20 · Magento 11 · custom 591 |
+| Checkout layer visible | 27% of sites (GoKwik 149, Razorpay Magic 39, Shiprocket 35, Shopflo 25) |
+| Gateway visible | 8% of sites. Gateways load at the payment step, so this is a floor |
 | Detection accuracy | _pending: 40-site hand-labelled check ([how](docs/accuracy/))_ |
 | Tests | 98 passing, offline, in CI |
 
 **Three insights** (full one-pager: [`docs/insight_note.pdf`](docs/insight_note.pdf)):
-1. **In D2C the checkout layer is the battleground, not the gateway.** 84% of Shopify brands run a
-   third-party checkout, and GoKwik alone is on 45% of D2C sites.
-2. **Where a gateway is visible, it's Razorpay** (28 of 32). 28 merchants show a single gateway,
-   a direct fit for the backup-route pitch.
-3. **Edtech is nearly invisible on the public web.** 2 of 80 sites show subscription pricing, so
+1. **In D2C the checkout layer is the battleground, not the gateway.** 73% of Shopify brands run a
+   third-party checkout, and GoKwik alone is on 29% of D2C sites.
+2. **Where a gateway is visible, it's mostly Razorpay** (63 of 77). 72 merchants show a single
+   gateway, a direct fit for the backup-route pitch.
+3. **Edtech is nearly invisible on the public web.** 4 of 196 sites show subscription pricing, so
    this segment needs app-store and counsellor-led research instead.
 
 ## The dashboard
 
 | Page | SDR question it answers |
 |---|---|
-| **Overview** | How big is my opportunity? Tier counts, payment-stack KPIs, score distribution, call-first list |
-| **Lead Explorer** | Who do I call today? Filters (vertical, tier, platform, gateway, checkout layer, city, funding) and CSV download |
-| **Competitor Landscape** | Who am I up against, and where? Gateway and checkout-layer share, competitor × vertical heatmap |
-| **Lead Detail** | What do I say? Score gauge, top 3 reasons, copyable opener, BANT, every signal with its evidence |
+| **Overview** | How big is my opportunity? Pipeline and payment-stack KPIs with charts, and a call-first list |
+| **Lead Explorer** | Who do I call today? Type-ahead company search, filters, paged lead list, CSV download |
+| **Lead Detail** | Who is this, and what do I say? Company profile, 3 reasons, contact card, formal opener, BANT, an **SDR call log**, every signal with its evidence |
+| **Competitor Landscape** | Who am I up against, and how do I win? **Battlecards** for 11 competitors ([research](docs/competitor_analysis.md)), share charts, competitor × vertical heatmap |
 
 | Lead Detail | Lead Explorer |
 |---|---|

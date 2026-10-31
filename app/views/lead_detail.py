@@ -1,12 +1,22 @@
-"""Lead Detail: what do I say on this call?"""
+"""Lead Detail: who is this company, what do I say, and what happened on the call?"""
 
 import html
 import json
 import re
+from datetime import date, timedelta
 
-import plotly.graph_objects as go
 import streamlit as st
-from common import TIER_COLORS, TIER_MEANING, chips, load_leads, style_fig, tier_badge
+from common import (
+    TIER_MEANING,
+    append_call_log,
+    chips,
+    load_icps,
+    load_leads,
+    read_call_log,
+    section,
+    tier_badge,
+    vertical_chip,
+)
 
 df = load_leads()
 domains = df["domain"].tolist()  # already sorted by score, best first
@@ -23,7 +33,7 @@ def go_to(d: str) -> None:
 
 
 # ---- Lead picker + previous / next ----
-labels = {d: f"{n} — {d} (Tier {t}, score {s})" for d, n, t, s in
+labels = {d: f"{n} · {d} (Tier {t}, score {s})" for d, n, t, s in
           zip(df["domain"], df["name"], df["tier"], df["score"], strict=True)}  # fmt: skip
 i = domains.index(domain)
 top = st.columns([6, 1, 1], vertical_alignment="bottom")
@@ -37,77 +47,164 @@ top[2].button("Next →", use_container_width=True, disabled=i == len(domains) -
 st.query_params["domain"] = domain
 st.session_state["selected_domain"] = domain
 lead = df[df["domain"] == domain].iloc[0]
+icp = load_icps().get(lead["icp"], {})
+esc = html.escape
 
-# ---- Header ----
-meta = [lead["vertical_label"], (lead["sub_category"] or "").title() or None,
-        lead["city"] if lead["city"] != "—" else None,
-        f"Funding: {lead['funding_stage']}" if lead["funding_stage"] else "Funding: unknown"]  # fmt: skip
+# ---- Company profile ----
+funding = lead["funding_stage"] or "Unknown"
+facts = [
+    ("Company", esc(lead["name"])),
+    ("Website", f'<a href="https://{domain}" target="_blank">https://{esc(domain)} ↗</a>'),
+    ("Domain", esc(domain)),
+    ("City", esc(lead["city"])),
+    ("Vertical", vertical_chip(lead["vertical_label"])),
+    ("Category", esc((lead["sub_category"] or "—").title())),
+    ("Platform", esc(lead["platform_label"])),
+    ("Funding", esc(funding)),
+]
 with st.container(border=True):
-    h = st.columns([5, 1.2], vertical_alignment="center")
-    h[0].markdown(
-        f'<span class="lead-name">{html.escape(lead["name"])}</span>{tier_badge(lead["tier"])}'
-        f'<span class="muted">&nbsp; {TIER_MEANING[lead["tier"]]} · rank {i + 1} of {len(domains)}</span>'
-        f'<div class="lead-meta"><a href="https://{domain}" target="_blank">{domain}</a> · '
-        + " · ".join(html.escape(str(m)) for m in meta if m)
+    st.markdown(
+        f"""<div class="profile">
+          <div>
+            <span class="lead-name">{esc(lead["name"])}</span>{tier_badge(lead["tier"])}
+            <div class="lead-sub"><b>{TIER_MEANING[lead["tier"]]}</b> · rank {i + 1} of
+              {len(domains):,} · {esc(icp.get("label", lead["icp"]))}</div>
+          </div>
+          <div class="scorebox"><div class="s-num">{int(lead["score"])}</div>
+            <div class="s-label">ICP score / 100</div></div>
+        </div>
+        <div class="facts">"""
+        + "".join(
+            f'<div class="fact"><div class="f-label">{k}</div><div class="f-value">{v}</div></div>'
+            for k, v in facts
+        )  # fmt: skip
         + "</div>",
         unsafe_allow_html=True,
     )
-    h[1].link_button("Visit website ↗", f"https://{domain}", use_container_width=True)
 
 if lead["data_coverage"] == "seed_only":
     st.warning("This site blocks automated checks, so the score uses seed data only. "
                "Research the site manually before calling.", icon="⚠️")  # fmt: skip
 
-brief, signals = st.tabs(["📞 Call brief", "🔍 Signals and evidence"])
+brief, log_tab, signals = st.tabs(["📞 Call brief", "📝 SDR log", "🔍 Signals and evidence"])
 
 # ---- Tab 1: call brief ----
 with brief:
-    g, r, p = st.columns([1, 1.6, 1.1])
-    with g:
-        fig = go.Figure(
-            go.Indicator(
-                mode="gauge+number", value=int(lead["score"]), number=dict(font=dict(size=44)),
-                gauge=dict(
-                    axis=dict(range=[0, 100], tickvals=[0, 25, 40, 100], tickcolor="#8a8984"),
-                    bar=dict(color=TIER_COLORS[lead["tier"]], thickness=0.35),
-                    bgcolor="#f3f2ef", borderwidth=0,
-                    steps=[dict(range=[25, 40], color="#e8f0fb"), dict(range=[40, 100], color="#dbe8f9")],
-                ),
-            )
-        )  # fmt: skip
-        fig.update_layout(title=f"ICP score · {lead['icp'].replace('_', ' ')}")
-        st.plotly_chart(style_fig(fig, height=230, legend=False), use_container_width=True,
-                        theme=None)  # fmt: skip
-    with r:
+    section("Call brief", "Everything you need before dialling")
+    left, right = st.columns([1.5, 1], gap="large")
+    with left:
         st.markdown("#### Why this lead")
-        for reason in lead["reasons"]:
-            st.markdown(f'<div class="reason">{html.escape(reason)}</div>', unsafe_allow_html=True)
-    with p:
+        reasons = list(lead["reasons"])[:3] or ["No strong public signal; qualify on the call."]
+        st.markdown('<ol class="why">' + "".join(f"<li>{esc(r)}</li>" for r in reasons) + "</ol>",
+                    unsafe_allow_html=True)  # fmt: skip
         st.markdown("#### What to pitch")
         st.markdown(chips(lead["suggested_products"]), unsafe_allow_html=True)
-        st.markdown("#### Contact")
-        if lead["contact_email"]:
-            st.code(lead["contact_email"], language=None)
-        else:
-            st.markdown('<span class="muted">No public business email found.</span>',
-                        unsafe_allow_html=True)  # fmt: skip
+    with right, st.container(border=True):
+        st.markdown("#### Contact information")
+        email = lead["contact_email"]
+        rows = [
+            ("Email", f'<a href="mailto:{esc(email)}">{esc(email)}</a>' if email
+             else '<span class="muted">No public business email found</span>'),
+            ("Website", f'<a href="https://{domain}" target="_blank">{esc(domain)}</a>'),
+            ("Who to ask for", esc(icp.get("buyer", "Founder"))),
+            ("Location", esc(lead["city"])),
+        ]  # fmt: skip
+        st.markdown("".join(f'<div class="contact-row"><div class="c-label">{k}</div>'
+                            f'<div class="c-value">{v}</div></div>' for k, v in rows),
+                    unsafe_allow_html=True)  # fmt: skip
+        st.link_button("Visit website", f"https://{domain}", use_container_width=True,
+                       icon=":material/open_in_new:")  # fmt: skip
 
     st.markdown("#### Opening line")
-    st.code(lead["opener"], language=None, wrap_lines=True)
-    st.caption("Use the copy icon on the right. Numbers and claims come only from public signals.")
+    st.markdown(f'<div class="opener">{esc(lead["opener"])}</div>', unsafe_allow_html=True)
+    st.caption("Built only from public signals. Confirm details on the call.")
 
-    st.markdown("#### BANT — best public guess, verify on the call")
-    b = st.columns(4)
-    for col, (label, key) in zip(b, [("💰 Budget", "bant_budget"), ("👤 Authority", "bant_authority"),
-                                     ("🎯 Need", "bant_need"), ("⏱ Timeline", "bant_timeline")],
-                                 strict=True):  # fmt: skip
+    section("BANT qualification", "Our best public guess per section. Confirm it on the call "
+            "and record what you learn in the SDR log tab.")  # fmt: skip
+    BANT = [("💰", "Budget", "bant_budget", "Can they pay?"),
+            ("👤", "Authority", "bant_authority", "Who decides?"),
+            ("🎯", "Need", "bant_need", "What problem do we solve?"),
+            ("⏱", "Timeline", "bant_timeline", "When will they act?")]  # fmt: skip
+    last = read_call_log().query("domain == @domain").sort_values("logged_at").tail(1)
+    cols = st.columns(4, gap="small")
+    for col, (ico, label, key, q) in zip(cols, BANT, strict=True):
+        status = last.iloc[0][f"{label.lower()}_status"] if len(last) else "Not verified"
+        color = {"Confirmed": "#059669", "Partly": "#d97706", "Not a fit": "#e11d48"}.get(
+            status, "#64748b"
+        )
         with col.container(border=True, height="stretch"):
-            st.markdown(f"**{label}**")
             st.markdown(
-                f'<span class="muted">{html.escape(lead[key])}</span>', unsafe_allow_html=True
+                f'<div class="bant-head"><span class="bant-ico">{ico}</span>{label}</div>'
+                f'<div class="bant-tag">Public guess</div>'
+                f'<div class="bant-guess">{esc(lead[key])}</div>'
+                f'<div class="bant-tag">Ask: {q}</div>'
+                f'<div style="margin-top:8px"><span class="chip" style="background:#fff;'
+                f'color:{color};border-color:{color}">{esc(status)}</span></div>',
+                unsafe_allow_html=True,
             )
 
-# ---- Tab 2: signals with evidence ----
+# ---- Tab 2: SDR log ----
+STATUSES = ["Not verified", "Confirmed", "Partly", "Not a fit"]
+OUTCOMES = ["Connected", "Meeting booked", "Call back later", "Voicemail", "No answer",
+            "Not interested", "Wrong contact"]  # fmt: skip
+with log_tab:
+    section("Log a call", f"Record what you learned from {esc(lead['name'])}")
+    with st.form(f"log_{domain}", clear_on_submit=True, border=True):
+        h = st.columns([1.2, 1.2, 1])
+        sdr = h[0].text_input("Your name", value=st.session_state.get("sdr_name", ""),
+                              placeholder="e.g. Priya")  # fmt: skip
+        outcome = h[1].selectbox("Call outcome", OUTCOMES)
+        follow = h[2].date_input("Follow-up date", value=date.today() + timedelta(days=3))
+
+        st.markdown("**BANT findings**")
+        b = st.columns(4, gap="small")
+        entry = {}
+        for col, (ico, label, _key, q) in zip(b, BANT, strict=True):
+            with col:
+                entry[f"{label.lower()}_status"] = st.selectbox(f"{ico} {label}", STATUSES,
+                                                                key=f"st_{label}")  # fmt: skip
+                entry[f"{label.lower()}_notes"] = st.text_area(
+                    f"{label} notes",
+                    placeholder=q,
+                    height=90,
+                    key=f"nt_{label}",
+                    label_visibility="collapsed",
+                )
+        n = st.columns([1.2, 2])
+        next_step = n[0].selectbox("Next step", ["Send deck", "Book demo", "Send pricing",
+                                                 "Intro to decision maker", "Nurture", "Close lost"])  # fmt: skip
+        notes = n[1].text_input("Notes", placeholder="Anything else worth remembering")
+        if st.form_submit_button("Save call log", type="primary", icon=":material/save:"):
+            st.session_state["sdr_name"] = sdr
+            append_call_log({**entry, "domain": domain, "company": lead["name"], "sdr": sdr,
+                             "outcome": outcome, "next_step": next_step,
+                             "follow_up": follow.isoformat(), "notes": notes})  # fmt: skip
+            st.toast(f"Saved call log for {lead['name']}", icon="✅")
+
+    section("Call history")
+    hist = read_call_log().query("domain == @domain").sort_values("logged_at", ascending=False)
+    if hist.empty:
+        st.caption("No calls logged for this lead yet.")
+    for _, r in hist.iterrows():
+        with st.container(border=True):
+            st.markdown(
+                f'**{esc(r["outcome"])}** · <span class="muted">{esc(r["logged_at"])}'
+                f"{' · by ' + esc(r['sdr']) if r['sdr'] else ''} · next: {esc(r['next_step'])}"
+                f" (follow up {esc(r['follow_up'])})</span>",
+                unsafe_allow_html=True,
+            )
+            c = st.columns(4, gap="small")
+            for col, (_, label, _, _) in zip(c, BANT, strict=True):
+                k = label.lower()
+                col.markdown(f'<div class="lr-label">{label}: {esc(r[k + "_status"])}</div>'
+                             f'<div class="muted">{esc(r[k + "_notes"]) or "—"}</div>',
+                             unsafe_allow_html=True)  # fmt: skip
+            if r["notes"]:
+                st.markdown(
+                    f'<div class="muted">📝 {esc(r["notes"])}</div>', unsafe_allow_html=True
+                )
+
+# ---- Tab 3: signals with evidence ----
 evidence = json.loads(lead["evidence"]) if lead["evidence"] else {}
 
 WHERE = {"script": "script", "html": "page code", "links": "link to", "img": "logo",
@@ -156,8 +253,8 @@ with signals:
         ("Pricing page", yes(lead["has_pricing_page"]), ev("feature:pricing_page")),
         ("Pages crawled", str(int(lead["pages_crawled"] or 0)), ""),
     ]  # fmt: skip
-    st.caption("Every signal the crawler found, and exactly where it was seen. "
-               "Confidence: high = the vendor's own script · medium = a checkout layer that runs "
+    section("Signals and evidence", "Every signal the crawler found, and exactly where")
+    st.caption("Confidence: high = the vendor's own script · medium = a checkout layer that runs "
                "on it · low = named next to payment words.")  # fmt: skip
     st.dataframe(
         [{"Signal": s, "Value": v, "Evidence": e} for s, v, e in rows],

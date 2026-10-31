@@ -1,0 +1,189 @@
+# Competitor battlecards shown on the Competitor Landscape page.
+# Research from public sources, checked October 2026. Pricing is the published or widely
+# reported standard rate; large merchants negotiate. Items marked "reported" come from press
+# or third-party write-ups and should be confirmed before quoting to a prospect.
+# Full notes and source links: docs/competitor_analysis.md
+#
+# key = the name used in leads.parquet (gateway_names / checkout_layer_name)
+
+as_of: "October 2026"
+
+gateways:
+  Razorpay:
+    type: Payment gateway (market leader)
+    threat: High
+    pricing: "2% + GST on most domestic methods; no setup fee or AMC. Custom pricing above ~₹5 lakh/month GMV."
+    position: >-
+      The default choice for Indian startups. Broadest product suite (gateway, Magic Checkout,
+      payment links, subscriptions, payroll, RazorpayX banking). FY25 revenue ₹3,783 Cr (+65%);
+      filed a confidential IPO draft with SEBI in June 2026.
+    strengths:
+      - Brand recognition and developer docs; most SDRs' prospects already know it
+      - Magic Checkout bundles one-click checkout with its own gateway
+      - Wide plugin coverage (Shopify, WooCommerce, Magento)
+    weaknesses:
+      - Merchants on one gateway have no fallback when success rates dip in sale spikes
+      - Standard 2% headline leaves room for a sharper offer at mid-market volumes
+      - Support quality is a common complaint for smaller merchants (reported)
+    win_with:
+      - Pitch Cashfree as a second route (smart routing), not a rip-and-replace
+      - Lead with success-rate and settlement-speed data during peak sales
+      - For Magic Checkout users, position Cashfree's own checkout + routing as the backup
+
+  PayU:
+    type: Payment gateway (enterprise + SMB)
+    threat: High
+    pricing: "~2% + GST domestic, ~3% international (third-party estimates); negotiable at volume."
+    position: >-
+      Prosus-owned; strong with large enterprises, edtech and BFSI. Partnered with GoKwik in
+      March 2026 to offer a combined checkout-to-payment stack for D2C brands (reported).
+    strengths:
+      - Deep enterprise relationships and EMI / affordability suite
+      - GoKwik partnership gives it a D2C checkout story
+    weaknesses:
+      - Older integration experience; legacy PayUmoney branding still visible on many sites
+      - Smaller merchants report slow onboarding (reported)
+    win_with:
+      - Faster onboarding and modern APIs for growth-stage teams
+      - UPI Autopay / e-mandate for edtech and subscription businesses
+
+  CCAvenue:
+    type: Legacy payment gateway
+    threat: Medium
+    pricing: "Plan-based with setup/annual fees on some plans; MDR varies by method."
+    position: >-
+      One of India's oldest gateways (Infibeam Avenues). Common on older custom sites,
+      education institutes and travel. Often seen as a payment-logo in footers.
+    strengths:
+      - Very wide payment-method coverage, multi-currency
+      - Trusted by traditional businesses and institutions
+    weaknesses:
+      - Dated checkout UX and redirects that hurt mobile conversion
+      - Annual fees on some plans
+    win_with:
+      - Modern hosted checkout and better mobile conversion
+      - Zero annual fee and faster settlements
+
+  Paytm:
+    type: Wallet + payment gateway
+    threat: Medium
+    pricing: "UPI generally zero-MDR for standard P2M; cards ~1.99%+ (varies)."
+    position: >-
+      Huge consumer UPI/wallet base and offline QR footprint. The gateway business is still
+      recovering merchant trust after the 2024 Payments Bank restrictions.
+    strengths:
+      - Consumer familiarity; strong offline + QR presence
+    weaknesses:
+      - Regulatory overhang has made some merchants add a second gateway
+    win_with:
+      - Position as a reliable primary or backup gateway with clean compliance record
+
+  PhonePe:
+    type: UPI app + payment gateway
+    threat: Medium
+    pricing: "No fee on UPI / RuPay debit (standard); ~1.99% on credit card and net banking (reported)."
+    position: >-
+      Largest UPI app by volume; uses that to win merchants on the PG side with aggressive UPI
+      pricing. Policy debate in 2026 about bringing back MDR on large-merchant UPI.
+    strengths:
+      - UPI scale and zero-fee UPI headline
+    weaknesses:
+      - Thinner product suite for subscriptions, cross-border and payouts
+    win_with:
+      - Full-stack offer (payouts, subscriptions, cross-border) beyond plain UPI acceptance
+
+  Juspay:
+    type: Payment orchestration (enterprise)
+    threat: Medium
+    pricing: "Enterprise contracts; open-source Hyperswitch for orchestration."
+    position: >-
+      Orchestration layer that routes between gateways for large enterprises (300M+
+      transactions/day claimed). Became a unicorn in Jan 2026 ($1.2B valuation).
+    strengths:
+      - Enterprise trust; multi-gateway routing and high reliability
+    weaknesses:
+      - Not a gateway itself; merchants still need acquiring partners
+    win_with:
+      - Be one of the gateways Juspay routes to; sell Cashfree as a route inside the stack
+
+  Easebuzz:
+    type: Vertical payment gateway (education, institutions)
+    threat: Medium (edtech)
+    pricing: "Competitive MDR; fee-collection suite for schools and colleges."
+    position: >-
+      RBI-authorised payment aggregator focused on education fee collection (instalments,
+      reminders, eNACH, Tally sync) and other verticals.
+    strengths:
+      - Purpose-built fee-collection workflows for institutions
+    weaknesses:
+      - Limited presence in D2C and global SaaS
+    win_with:
+      - For edtech: UPI Autopay mandates, EMI/pay-later and payouts in one stack
+
+  Stripe:
+    type: Global gateway (cross-border)
+    threat: Medium (SaaS)
+    pricing: "International cards ~4.3% + ~2% conversion for Indian sellers (competitor estimate)."
+    position: >-
+      Indian SaaS uses it to bill global customers. Stripe India has been invite-only since
+      2024; cross-border licensing in India is still being worked out (reported).
+    strengths:
+      - Best-in-class billing APIs and global brand trust
+    weaknesses:
+      - Invite-only onboarding in India; high all-in cost on cross-border
+    win_with:
+      - Cross-border collections with lower FX cost and INR settlement
+
+  BillDesk:
+    type: Legacy gateway (utilities, BFSI)
+    threat: Low
+    pricing: "Enterprise contracts."
+    position: "Dominant in bill payments, insurance and government; rarely the choice for startups."
+    strengths: [Bank and government relationships]
+    weaknesses: [Dated merchant experience]
+    win_with: [Modern APIs for digital-first teams]
+
+  PayPal:
+    type: Global wallet
+    threat: Low
+    pricing: "~4.4% + fixed fee on international receipts (standard)."
+    position: "Used as an extra button for overseas buyers; rarely the primary gateway."
+    strengths: [Trusted by overseas consumers]
+    weaknesses: [High fees, no domestic payments in India]
+    win_with: [Cross-border collections at lower cost]
+
+  Instamojo:
+    type: SMB payments + store builder
+    threat: Low
+    pricing: "~2% + ₹3 per transaction (standard)."
+    position: "Payment links and simple stores for creators and micro-businesses."
+    strengths: [Very easy setup for creators]
+    weaknesses: [Limited for scaling businesses]
+    win_with: [Scale features: routing, subscriptions, payouts]
+
+checkout_layers:
+  GoKwik:
+    position: >-
+      RTO-focused one-click checkout for Shopify D2C brands; partnered with PayU in March 2026.
+    pitch: "Brands paying for GoKwik care about conversion; pitch Cashfree as a high-success-rate gateway behind it."
+  Razorpay Magic Checkout:
+    position: "Razorpay's one-click checkout; designed mainly to run on Razorpay's own gateway."
+    pitch: "Merchant is locked to one gateway; pitch a backup route for sale days."
+  Shopflo:
+    position: >-
+      Conversion and upsell-focused checkout that supports multiple gateways; acquisition by
+      Pine Labs announced April 2026 (reported).
+    pitch: "Multi-gateway by design; easy to add Cashfree as a route."
+  Shiprocket Checkout:
+    position: "Checkout from the Shiprocket logistics ecosystem, bundled with shipping."
+    pitch: "Pitch payment success rates and faster settlements behind the checkout."
+  Chargebee:
+    position: "Subscription billing for SaaS; sits on top of gateways like Stripe or Razorpay."
+    pitch: "Cashfree plugs into Chargebee as a gateway for UPI Autopay and cross-border."
+
+market_notes:
+  - "Market size ~US$2.1B (2025), forecast ~US$3.9B by 2032; top five players hold ~68% (MarkNtel, paid report)."
+  - "Razorpay is consistently named the leader; PayU, Cashfree, PhonePe and Paytm follow. Share estimates vary widely by source."
+  - "Cashfree FY26 revenue is close to ₹1,000 Cr with losses narrowing (Inc42)."
+  - "UPI MDR is under policy review in 2026; any change on large merchants shifts gateway economics."
+  - "Shopify is reportedly bringing Shop Pay to India, a new checkout competitor for D2C."

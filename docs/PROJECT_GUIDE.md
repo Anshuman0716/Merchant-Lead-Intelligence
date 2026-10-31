@@ -20,8 +20,8 @@ for every merchant:
 3. **What to say** — a one-line opening question, suggested products, and a BANT guess
    (Budget, Authority, Need, Timeline).
 
-**Scope.** 408 Indian businesses across three verticals — D2C brands, edtech and SaaS — which
-become 389 scored leads after cleaning.
+**Scope.** 1,072 Indian businesses across three verticals — D2C brands, edtech and SaaS — which
+become 995 scored leads after cleaning.
 
 ---
 
@@ -106,7 +106,7 @@ checked during cleaning.
 
 The ingest stage reads all three files, trims spaces, turns empty cells into nulls, lower-cases
 the vertical, parses dates, and validates the result against the `RawCompanies` schema.
-**Result: 408 rows.**
+**Result: 1,072 rows.**
 
 ### Stage 2 — Clean (`clean.py` → table `companies`)
 
@@ -302,71 +302,78 @@ during sale spikes?"*
 Start it with `make app` (or `uv run streamlit run app/Home.py`). `Home.py` sets up the page,
 styling and sidebar, then hands off to one of four pages in `app/views/`.
 
+### Look and feel
+
+A light theme with an indigo primary colour, the Inter font, solid section headings with an
+accent line, and KPI cards laid out in an equal-height grid so they always line up. Lead lists
+are shown as rows (rank · company · why call · score · **Open** button) instead of wide
+tables, so nothing needs sideways scrolling.
+
 ### Sidebar (on every page)
 
-- **Navigation** grouped into *Prospecting* (Overview, Lead Explorer, Lead Detail) and *Market*
-  (Competitor Landscape).
-- **Jump to a lead** — type any company name and press Enter to open its brief from anywhere.
-- **How tiers work** — a quick reminder of the tier rules.
-- Data note: public pages only; gateway counts are a minimum.
+- **Merchant Lead Intelligence** heading, with the lead count and scoring date.
+- **Prospecting**: Overview, Lead Explorer, Lead Detail.
+- **Market**: Competitor Landscape.
+- **Search for a company**: start typing and matching companies are suggested A → Z; pick one
+  to open its brief from anywhere.
+- **How tiers work**: the tier rules and what each tier means.
 
 ### Page 1 — Overview: *"How big is my opportunity?"*
 
 | Section | What it shows |
 |---|---|
-| Header banner | What the tool does, the number of Tier A leads, websites analysed, and the scoring date. |
-| Quick actions | **Open today's Tier A call list** (opens Lead Explorer with Tier A pre-selected), **Brief for the #1 lead**, **See who we're competing with**. |
-| Pipeline cards | Total leads scored, and the count and % for Tier A, B and C. |
-| Payment stack cards | % of crawled sites where a gateway is visible, that use a checkout layer, that sell subscriptions, and that sell internationally. |
-| Leads by vertical and tier | Stacked bar chart: how many A/B/C leads each vertical has. |
-| Score distribution | Histogram of all scores with dotted lines at the Tier B (25) and Tier A (40) cut-offs. |
-| Call these first | The top 10 Tier A leads, filterable by vertical, with the reason to call and the opener. Click a row to open its brief. |
+| Header banner | Title, an accent line, and one sentence on what the tool does. |
+| Quick actions | **Tier A call list** (opens Lead Explorer with Tier A selected), **Top lead brief**, **Competitors**. |
+| Pipeline | Cards for total leads and Tier A / B / C (count, % and what to do), then two charts: leads by vertical and tier, and the score distribution with the tier cut-offs. |
+| Payment stack | Cards for % of crawled sites with a visible gateway, a checkout layer, subscriptions and international sales, then charts of which gateways and checkout layers were seen. |
+| Call these first | The top 10 Tier A leads (filter by vertical) as rows: rank, company with tier and vertical, why call, the opening line, score bar and an **Open** button. A *Last call* badge appears once the lead has been logged. |
 
 ### Page 2 — Lead Explorer: *"Who do I call today?"*
 
 | Feature | What it does |
 |---|---|
-| Search | Filters by company name or domain. |
+| Search for a company | Type-ahead: suggestions appear A → Z as you type. Pick one company, or press Enter on your text to match every company or domain that contains it. |
 | Tier / Vertical buttons | Click one or more to filter. |
 | Platform, Gateway, Checkout layer, City | Multi-select filters. |
-| More filters and sorting | Sells subscriptions, sells internationally, has public email, hide sites we couldn't crawl, minimum score slider, funding known/unknown, and sort order. |
+| More filters and sorting | Sells subscriptions, sells internationally, has public email, hide sites we couldn't crawl, minimum score, funding known/unknown, and sort order. |
 | Active-filter count + Reset | Shows how many filters are on; one click clears them all. |
-| **Filters are remembered** | Open a lead brief and come back — your filters are still there. |
-| Summary cards | Leads shown, Tier A in view, average score, leads with a public email. |
-| Lead table | Company, tier, score bar, vertical, platform, visible payment stack, top reason, city, website link. |
-| Preview panel | Click a row to see that lead's reasons, opener and products below the table, with an **Open full brief →** button. |
+| **Filters are remembered** | Open a lead and come back; your filters are still there. |
+| Results | Leads shown, Tier A in view, average score, leads with a public email. |
+| Lead list | 15 leads per page as rows (company, tier, vertical, platform, city, why call, payment stack, score, **Open**), with Previous / Next. |
 | Download | Exports exactly the leads currently shown as a CSV. |
 
-### Page 3 — Lead Detail: *"What do I say on this call?"*
+### Page 3 — Lead Detail: *"Who is this, and what do I say?"*
 
 | Feature | What it shows |
 |---|---|
 | Lead picker + Previous / Next | Choose any lead, or step through them in score order. |
-| Header card | Name, tier badge, what the tier means, rank (e.g. 2 of 389), domain, vertical, sub-category, city, funding, and a **Visit website** button. |
+| Company profile | Name, tier badge and meaning, rank, ICP, a score box, and a fact grid: company, website link, domain, city, vertical, category, platform, funding. |
 | Shareable link | The URL updates to `/Lead_Detail?domain=livpure.com` so a brief can be sent to a teammate. |
 | Warning | Shown when the site blocks bots, so the score uses seed data only. |
-| **Call brief tab** | Score gauge (with the 25 and 40 tier bands), *Why this lead* (top 3 reasons), *What to pitch* (product chips), *Contact* (copyable email), *Opening line* (copy button), and *BANT* cards. |
-| **Signals and evidence tab** | Every signal (platform, gateways, checkout layer, subscriptions, international, EMI, COD, apps, pricing page, pages crawled) with its value and **where it was found**, e.g. *script "checkout.razorpay.com" on home page · high confidence*. |
+| **Call brief tab** | *Why this lead* (3 numbered reasons), *What to pitch*, a *Contact information* card (email, website, who to ask for, location), a formal *Opening line*, and **BANT** cards: the public guess, the question to ask, and the latest verified status from the SDR log. |
+| **SDR log tab** | A form to log each call: SDR name, outcome, follow-up date, a status (Not verified / Confirmed / Partly / Not a fit) and notes for each BANT section, next step and notes. Saved to `data/sdr/call_log.csv`; the full call history is listed below the form. |
+| **Signals and evidence tab** | Every signal with its value and **where it was found**, e.g. *script "checkout.razorpay.com" on home page · high confidence*. |
 
-### Page 4 — Competitor Landscape: *"Who am I up against, and where?"*
+### Page 4 — Competitor Landscape: *"Who am I up against, and how do I win?"*
 
 | Feature | What it shows |
 |---|---|
-| Vertical switch | All verticals, D2C, Edtech or SaaS — updates the cards and the first tab. |
-| Headline cards | Sites with a gateway visible, with a checkout layer visible, with a single gateway (the backup-route pitch), and with nothing visible (discover on the call). |
-| Tab: Gateways and checkout layers | Bar charts of which gateways and checkout layers were found and on what % of sites, plus a breakdown of evidence by confidence. |
-| Tab: Competitor × vertical | Heatmap: for each competitor, the % of sites in each vertical where it appears (GoKwik on 45% of D2C sites stands out). Also viewable as a table. |
-| Tab: E-commerce platforms | Shopify / WooCommerce / custom by vertical. |
+| Vertical switch | All verticals, D2C, Edtech or SaaS. |
+| Headline cards | Sites with a gateway visible, a checkout layer visible, a single gateway (backup-route pitch), and nothing visible. |
+| Tab: Battlecards | Pick a competitor (Razorpay, PayU, CCAvenue, Paytm, PhonePe, Juspay, Easebuzz, Stripe…): positioning, threat level, published pricing, strengths, weaknesses, **how we win**, how many crawled merchants use it, and the best Tier A/B leads on it. Also cards for each checkout layer and market notes. Research and sources: [competitor_analysis.md](competitor_analysis.md). |
+| Tab: Gateways and checkout layers | Bar charts of what was found and on what % of sites, plus evidence by confidence. |
+| Tab: Competitor × vertical | Heatmap of where each competitor appears, also as a table. |
+| Tab: E-commerce platforms | Shopify / WooCommerce / Magento / custom by vertical. |
 
 ---
 
 ## 7. Key findings
 
-1. **In D2C, the checkout layer is the battleground, not the gateway.** 84% of Shopify brands run a
-   third-party checkout; GoKwik alone is on 45% of D2C sites.
-2. **Where a gateway is visible, it's almost always Razorpay** (28 of 32). 28 merchants show a
+1. **In D2C, the checkout layer is the battleground, not the gateway.** 73% of Shopify brands run a
+   third-party checkout; GoKwik alone is on 29% of D2C sites.
+2. **Where a gateway is visible, it's mostly Razorpay** (63 of 77). 72 merchants show a
    single gateway — a direct fit for the backup-route pitch.
-3. **Edtech is nearly invisible on the public web.** Only 2 of 80 sites show subscription pricing,
+3. **Edtech is nearly invisible on the public web.** Only 4 of 196 sites show subscription pricing,
    so this vertical needs other research (app stores, counsellors).
 
 ## 8. Limitations

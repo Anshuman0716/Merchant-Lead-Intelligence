@@ -19,28 +19,27 @@ LAYER_NAMES = {
 STAGE_NAMES = {"seed": "seed", "A": "Series A", "B+": "Series B+", "bootstrapped": "latest"}
 
 TEMPLATES = {
-    "uses_cashfree": "Thanks for building on Cashfree, {name} — would a quick review of your "
+    "uses_cashfree": "Thank you for choosing Cashfree, {name}; would a short review of your "
     "payment success rates be useful this quarter?",
-    "recent_funding": "Congrats on the {stage} round at {name} — as volume scales, is payment "
-    "success rate on your radar yet?",
-    "competitor_gateway": "Noticed {name} checks out via {gateway} — do you have a backup route "
-    "for when it dips during sale spikes?",
-    "single_gateway": "Noticed {name} checks out via {gateway} — do you have a backup route for "
-    "when it dips during sale spikes?",
-    "checkout_layer": "Saw {name} uses {layer} for checkout — how are you tracking payment "
-    "success rates behind it during sales?",
-    "subscription": "Saw {name} offers subscription plans — curious how you handle failed "
-    "renewals today?",
-    "international": "Saw {name} sells to overseas customers — how are you collecting and "
-    "settling those international payments right now?",
-    "emi": "Saw {name} offers EMI options — how are you handling instalment collections and "
-    "failed payments today?",
-    "cod": "Saw {name} offers cash on delivery — have you tried nudging COD buyers to prepaid "
-    "at checkout?",
-    "mobile_app": "Saw {name} has a mobile app — how smooth is in-app checkout for your users "
-    "today?",
-    "default": "Quick question for {name} — how happy are you with your online payment success "
-    "rates today?",
+    "recent_funding": "Congratulations on the {stage} round at {name}; as volumes grow, would it "
+    "help to review how your payment stack will scale?",
+    "competitor_gateway": "I noticed {name} processes payments through {gateway}; would you be "
+    "open to a short discussion on improving success rates and settlement times?",
+    "single_gateway": "I noticed {name} relies on {gateway} alone; would a backup payment route "
+    "for peak sale periods be worth a short discussion?",
+    "checkout_layer": "I see {name} uses {layer} at checkout; how are you currently monitoring "
+    "payment success rates behind it during high-traffic sales?",
+    "subscription": "I noticed {name} offers subscription plans; how are failed renewals and "
+    "recurring mandates managed today?",
+    "international": "I noticed {name} serves customers overseas; how are you currently "
+    "collecting and settling international payments?",
+    "emi": "I noticed {name} offers EMI options; how are instalment collections and failed "
+    "payments handled today?",
+    "cod": "I noticed {name} offers cash on delivery; have you considered converting more COD "
+    "orders to prepaid at checkout?",
+    "mobile_app": "I noticed {name} has a mobile app; how satisfied are you with the in-app "
+    "checkout experience today?",
+    "default": "Could I ask how satisfied {name} is with its current online payment success rates?",
 }
 
 
