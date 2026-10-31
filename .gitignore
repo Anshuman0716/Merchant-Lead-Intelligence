@@ -8,3 +8,4 @@ data/cache/
 *.duckdb.wal
 .env
 .DS_Store
+.claude/
