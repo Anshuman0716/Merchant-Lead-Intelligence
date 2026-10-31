@@ -17,5 +17,5 @@ jobs:
         run: uv sync --locked
       - name: Lint
         run: uv run ruff check src tests app scripts
-      - name: Tests (offline: saved HTML fixtures + committed exports)
+      - name: "Tests (offline: saved HTML fixtures + committed exports)"
         run: uv run pytest -q
