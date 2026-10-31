@@ -44,3 +44,4 @@ pythonpath = ["src"]
 
 [tool.ruff.lint.per-file-ignores]
 "app/**" = ["E501"]  # UI code: long labels/strings read better on one line
+"scripts/**" = ["E501"]  # report text
