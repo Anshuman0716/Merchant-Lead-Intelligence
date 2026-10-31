@@ -1,7 +1,8 @@
-"""Shared data loading, colors and small UI helpers for every page."""
+"""Shared data loading, colors, styling and small UI helpers for every page."""
 
 from __future__ import annotations
 
+import html
 from pathlib import Path
 
 import pandas as pd
@@ -10,8 +11,20 @@ import streamlit as st
 
 DATA = Path(__file__).resolve().parent.parent / "exports" / "leads.parquet"
 
+# Page paths (relative to Home.py) used for navigation between pages
+OVERVIEW = "views/overview.py"
+EXPLORER = "views/lead_explorer.py"
+COMPETITORS = "views/competitor_landscape.py"
+DETAIL = "views/lead_detail.py"
+
 # Colors: validated reference palette (dataviz skill). Tiers are ordinal -> one blue ramp.
 TIER_COLORS = {"A": "#184f95", "B": "#3987e5", "C": "#86b6ef"}
+TIER_TEXT = {"A": "#ffffff", "B": "#ffffff", "C": "#0d366b"}
+TIER_MEANING = {
+    "A": "Call this week",
+    "B": "Add to a sequence",
+    "C": "Low priority / account manager",
+}
 VERTICAL_COLORS = {"D2C": "#2a78d6", "Edtech": "#eb6834", "SaaS": "#1baf7a"}
 SINGLE = "#2a78d6"
 SEQUENTIAL = ["#f3f2ef", "#cde2fb", "#86b6ef", "#3987e5", "#1c5cab", "#0d366b"]
@@ -51,31 +64,88 @@ def payment_stack(row) -> str:
     return ", ".join(parts) if parts else "Not visible"
 
 
-def page_setup(title: str, icon: str = "📇") -> None:
-    st.set_page_config(page_title=f"{title} · Lead Intelligence", page_icon=icon, layout="wide")
-    st.markdown(
-        """
-        <style>
-          .block-container {padding-top: 2rem; max-width: 1280px;}
-          [data-testid="stMetricValue"] {font-size: 1.9rem;}
-          .tier {display:inline-block; padding:2px 10px; border-radius:999px; color:#fff;
-                 font-weight:600; font-size:0.85rem; letter-spacing:.02em}
-          .chip {display:inline-block; padding:3px 10px; margin:0 6px 6px 0; border-radius:999px;
-                 background:#eef4fc; color:#184f95; font-size:0.85rem; border:1px solid #cde2fb}
-          .muted {color:#52514e; font-size:0.9rem}
-          .reason {padding:6px 0 6px 12px; border-left:3px solid #3987e5; margin-bottom:8px}
-        </style>
-        """,
+# ---------- styling ----------
+
+CSS = """
+<style>
+  .block-container {padding-top: 1.8rem; padding-bottom: 3rem; max-width: 1320px;}
+  [data-testid="stMetricValue"] {font-size: 1.8rem;}
+  h3 {margin-top: .4rem;}
+
+  /* Hero banner (Overview) */
+  .hero {padding: 26px 30px; border-radius: 16px; margin-bottom: 1.2rem; color: #fff;
+         background: linear-gradient(120deg, #0d366b 0%, #184f95 45%, #3987e5 100%);}
+  .hero .eyebrow {font-size: .78rem; letter-spacing: .12em; text-transform: uppercase;
+                  opacity: .8; font-weight: 600}
+  .hero .title {font-size: 2.1rem; font-weight: 700; line-height: 1.2; margin: 4px 0 6px}
+  .hero .sub {font-size: 1rem; opacity: .92; max-width: 780px}
+  .hero .pills {margin-top: 14px}
+  .hero .pill {display: inline-block; padding: 4px 12px; margin: 0 8px 6px 0; border-radius: 999px;
+               background: rgba(255,255,255,.16); font-size: .82rem; font-weight: 500}
+
+  /* Page header (other pages) */
+  .ph {margin: 0 0 1rem}
+  .ph .ph-title {font-size: 1.9rem; font-weight: 700; color: #0b0b0b; line-height: 1.25}
+  .ph .ph-sub {color: #52514e; font-size: .98rem; margin-top: 4px; max-width: 900px}
+
+  /* KPI cards */
+  .kpi {background: #fff; border: 1px solid #e4e2dd; border-radius: 12px; padding: 14px 16px;
+        height: 100%; border-top: 4px solid var(--accent, #2a78d6)}
+  .kpi .k-label {color: #52514e; font-size: .85rem; font-weight: 500}
+  .kpi .k-value {color: #0b0b0b; font-size: 1.85rem; font-weight: 700; line-height: 1.2;
+                 margin-top: 2px}
+  .kpi .k-sub {color: #8a8984; font-size: .8rem; margin-top: 2px}
+
+  /* Badges, chips, reasons */
+  .tier {display: inline-block; padding: 3px 12px; border-radius: 999px; font-weight: 700;
+         font-size: .85rem; letter-spacing: .02em; vertical-align: middle}
+  .chip {display: inline-block; padding: 4px 11px; margin: 0 6px 6px 0; border-radius: 999px;
+         background: #eef4fc; color: #184f95; font-size: .85rem; border: 1px solid #cde2fb}
+  .muted {color: #52514e; font-size: .9rem}
+  .reason {padding: 8px 12px; border-left: 3px solid #3987e5; margin-bottom: 8px;
+           background: #f7f9fd; border-radius: 0 8px 8px 0}
+
+  /* Lead header card */
+  .lead-name {font-size: 1.8rem; font-weight: 700; line-height: 1.2; margin-right: 10px}
+  .lead-meta {color: #52514e; font-size: .95rem; margin-top: 6px}
+  .lead-meta a {color: #2a78d6; text-decoration: none}
+
+  /* Sidebar */
+  .side-brand {font-weight: 700; font-size: 1.05rem; color: #0b0b0b}
+  .side-brand span {color: #2a78d6}
+  .tier-row {display: flex; align-items: center; gap: 8px; margin: 6px 0; font-size: .85rem;
+             color: #52514e}
+</style>
+"""
+
+
+def apply_style() -> None:
+    st.markdown(CSS, unsafe_allow_html=True)
+
+
+def page_header(title: str, subtitle: str = "") -> None:
+    sub = f'<div class="ph-sub">{subtitle}</div>' if subtitle else ""
+    st.markdown(f'<div class="ph"><div class="ph-title">{title}</div>{sub}</div>',
+                unsafe_allow_html=True)  # fmt: skip
+
+
+def kpi(col, label: str, value, sub: str = "", accent: str = SINGLE, help: str = "") -> None:
+    """A KPI card with a colored top edge. `help` shows as a hover tooltip."""
+    tip = f' title="{html.escape(help)}"' if help else ""
+    col.markdown(
+        f'<div class="kpi" style="--accent:{accent}"{tip}><div class="k-label">{label}</div>'
+        f'<div class="k-value">{value}</div><div class="k-sub">{sub or "&nbsp;"}</div></div>',
         unsafe_allow_html=True,
     )
 
 
 def tier_badge(tier: str) -> str:
-    return f'<span class="tier" style="background:{TIER_COLORS[tier]}">Tier {tier}</span>'
+    return (f'<span class="tier" style="background:{TIER_COLORS[tier]};color:{TIER_TEXT[tier]}">'
+            f"Tier {tier}</span>")  # fmt: skip
 
 
 def chips(items: list[str]) -> str:
-    return "".join(f'<span class="chip">{i}</span>' for i in items)
+    return "".join(f'<span class="chip">{html.escape(i)}</span>' for i in items)
 
 
 def style_fig(fig: go.Figure, height: int = 320, legend: bool = True) -> go.Figure:
@@ -102,6 +172,41 @@ def style_fig(fig: go.Figure, height: int = 320, legend: bool = True) -> go.Figu
     return fig
 
 
+# ---------- navigation and state ----------
+
+
 def open_lead(domain: str) -> None:
-    st.session_state["selected_domain"] = domain
-    st.switch_page("pages/3_Lead_Detail.py")
+    """Go to the Lead Detail page for this company."""
+    st.session_state["nav_domain"] = domain
+    st.switch_page(DETAIL)
+
+
+# Lead Explorer filters: widget key -> default value. Saved in a shadow key so the filters
+# survive a trip to another page (Streamlit drops widget state for pages that aren't shown).
+FILTER_DEFAULTS = {
+    "f_search": "", "f_tier": [], "f_vertical": [], "f_platform": [], "f_gateway": [],
+    "f_layer": [], "f_city": [], "f_funding": "Any", "f_sub": False, "f_intl": False,
+    "f_email": False, "f_hide_seed": False, "f_min_score": 0, "f_sort": "Score (high → low)",
+}  # fmt: skip
+
+
+def _copy(v):
+    return list(v) if isinstance(v, list) else v
+
+
+def restore_filters() -> None:
+    for k, default in FILTER_DEFAULTS.items():
+        if k not in st.session_state:
+            st.session_state[k] = _copy(st.session_state.get(f"_keep_{k}", default))
+
+
+def save_filters() -> None:
+    for k in FILTER_DEFAULTS:
+        st.session_state[f"_keep_{k}"] = _copy(st.session_state[k])
+
+
+def reset_filters(**overrides) -> None:
+    for k, default in FILTER_DEFAULTS.items():
+        v = _copy(overrides.get(k, default))
+        st.session_state[k] = v
+        st.session_state[f"_keep_{k}"] = _copy(v)

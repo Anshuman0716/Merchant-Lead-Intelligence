@@ -29,7 +29,7 @@ def main() -> None:
         page = browser.new_page(viewport={"width": 1440, "height": 900}, device_scale_factor=1.5)
         for name, path in PAGES.items():
             page.goto(BASE + path, wait_until="networkidle")
-            page.wait_for_selector('[data-testid="stMainBlockContainer"] h1, h2', timeout=30_000)
+            page.wait_for_selector('.hero, .ph, .lead-name', timeout=30_000)
             page.wait_for_timeout(2500)  # let Plotly charts finish drawing
             page.screenshot(path=str(OUT / name), full_page=True)
             print("saved", name)

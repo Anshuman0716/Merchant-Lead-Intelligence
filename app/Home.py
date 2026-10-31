@@ -1,112 +1,70 @@
-"""Overview: how big is my opportunity?"""
+"""App entry point: page config, shared styling, sidebar and navigation.
 
-import plotly.graph_objects as go
+Run with:  uv run streamlit run app/Home.py
+"""
+
 import streamlit as st
 from common import (
-    SINGLE,
-    TIER_COLORS,
+    COMPETITORS,
+    DETAIL,
+    EXPLORER,
+    OVERVIEW,
+    TIER_MEANING,
     TIERS,
-    VERTICALS,
+    apply_style,
     load_leads,
     open_lead,
-    page_setup,
-    style_fig,
-)  # fmt: skip
+    tier_badge,
+)
 
-page_setup("Overview")
+st.set_page_config(page_title="Lead Intelligence", page_icon="📇", layout="wide")
+apply_style()
+
+pages = {
+    "Prospecting": [
+        st.Page(OVERVIEW, title="Overview", icon=":material/dashboard:", default=True),
+        st.Page(EXPLORER, title="Lead Explorer", icon=":material/manage_search:",
+                url_path="Lead_Explorer"),
+        st.Page(DETAIL, title="Lead Detail", icon=":material/person_search:",
+                url_path="Lead_Detail"),
+    ],
+    "Market": [
+        st.Page(COMPETITORS, title="Competitor Landscape", icon=":material/insights:",
+                url_path="Competitor_Landscape"),
+    ],
+}  # fmt: skip
+nav = st.navigation(pages)
+
 df = load_leads()
-crawled = df[df["data_coverage"] == "website"]
 
-st.title("Merchant Lead Intelligence")
-st.markdown(
-    '<p class="muted">Which merchants a payments SDR should call first, why, and what to say — '
-    f"built from public website signals on {len(df)} Indian D2C, edtech and SaaS businesses. "
-    f"Scored {df['scored_at'].max():%d %b %Y}.</p>",
-    unsafe_allow_html=True,
-)
+with st.sidebar:
+    st.markdown('<div class="side-brand">📇 Merchant Lead <span>Intelligence</span></div>',
+                unsafe_allow_html=True)  # fmt: skip
+    st.caption(f"{len(df)} leads · scored {df['scored_at'].max():%d %b %Y}")
 
-# ---- KPI tiles ----
-n = len(df)
-counts = df["tier"].value_counts()
-c = st.columns(4)
-c[0].metric("Leads scored", n, border=True)
-for col, t in zip(c[1:], TIERS, strict=True):
-    col.metric(f"Tier {t}", int(counts.get(t, 0)), f"{counts.get(t, 0) / n:.0%} of leads",
-               delta_color="off", delta_arrow="off", border=True)  # fmt: skip
-
-
-def share(mask) -> str:
-    return f"{mask.mean():.0%}"
-
-
-strong_gw = crawled["gateway_confidence"].isin(["high", "medium"])
-c = st.columns(4)
-c[0].metric("Gateway visible", share(strong_gw), "high/medium confidence", delta_color="off", delta_arrow="off",
-            border=True, help="Gateways usually load only at the final payment step, so this is a floor.")  # fmt: skip
-c[1].metric("Use a checkout layer", share(crawled["checkout_layer"].notna()),
-            "GoKwik, Razorpay Magic, Shopflo…", delta_color="off", delta_arrow="off", border=True)  # fmt: skip
-c[2].metric(
-    "Sell subscriptions",
-    share(crawled["has_subscription"]),
-    delta_color="off",
-    delta_arrow="off",
-    border=True,
-)
-c[3].metric("Sell internationally", share(crawled["has_international"]), delta_color="off", delta_arrow="off",
-            border=True)  # fmt: skip
-
-# ---- Charts ----
-left, right = st.columns([1.1, 1])
-with left:
-    tv = df.groupby(["vertical_label", "tier"]).size().unstack(fill_value=0)
-    fig = go.Figure()
-    for t in TIERS:
-        fig.add_bar(
-            y=VERTICALS, x=[int(tv.loc[v, t]) if v in tv.index and t in tv else 0 for v in VERTICALS],
-            name=f"Tier {t}", orientation="h", marker_color=TIER_COLORS[t],
-            marker_line=dict(color="#fcfcfb", width=2),
-            hovertemplate="%{y} · Tier " + t + ": <b>%{x}</b> leads<extra></extra>",
-        )  # fmt: skip
-    fig.update_layout(barmode="stack", title="Leads by vertical and tier")
-    fig.update_yaxes(autorange="reversed")
-    st.plotly_chart(style_fig(fig), use_container_width=True, theme=None)
-
-with right:
-    fig = go.Figure(
-        go.Histogram(
-            x=df["score"], xbins=dict(start=0, end=105, size=5), marker_color=SINGLE,
-            marker_line=dict(color="#fcfcfb", width=2),
-            hovertemplate="Score %{x}: <b>%{y}</b> leads<extra></extra>",
-        )
+    # Quick jump: type any company name to open its brief from any page
+    if st.session_state.pop("_clear_jump", False):
+        st.session_state["jump"] = None
+    names = dict(zip(df["domain"], df["name"], strict=True))
+    pick = st.selectbox(
+        "Jump to a lead", list(names), index=None, key="jump",
+        format_func=lambda d: f"{names[d]}  ·  {d}", placeholder="Type a company name…",
     )  # fmt: skip
-    for thr, label in [(25, "Tier B ≥ 25"), (40, "Tier A ≥ 40")]:
-        fig.add_vline(x=thr, line=dict(color="#52514e", width=1, dash="dot"),
-                      annotation_text=label, annotation_position="top right",
-                      annotation_font_color="#52514e")  # fmt: skip
-    fig.update_layout(title="Score distribution")
-    fig.update_xaxes(title="ICP score (0–100)")
-    fig.update_yaxes(title="Leads")
-    st.plotly_chart(style_fig(fig, legend=False), use_container_width=True, theme=None)
+    if pick:
+        st.session_state["_clear_jump"] = True
+        open_lead(pick)
 
-# ---- Call first ----
-st.subheader("Call these first")
-st.caption("Top Tier A leads. Select a row to open the full lead brief.")
-top = df[df["tier"] == "A"].head(10)
-event = st.dataframe(
-    top[["name", "vertical_label", "score", "top_reason", "opener"]],
-    hide_index=True, use_container_width=True, on_select="rerun", selection_mode="single-row",
-    column_config={
-        "name": "Company", "vertical_label": "Vertical",
-        "score": st.column_config.ProgressColumn("Score", min_value=0, max_value=100, format="%d"),
-        "top_reason": st.column_config.TextColumn("Why call", width="large"),
-        "opener": st.column_config.TextColumn("Suggested opener", width="large"),
-    },
-)  # fmt: skip
-if event.selection.rows:
-    open_lead(top.iloc[event.selection.rows[0]]["domain"])
+    with st.expander("How tiers work", expanded=False):
+        for t, rule in zip(TIERS, ["score ≥ 40", "score 25–39", "score < 25"], strict=True):
+            st.markdown(
+                f'<div class="tier-row">{tier_badge(t)} <span><b>{rule}</b> · '
+                f"{TIER_MEANING[t]}</span></div>",
+                unsafe_allow_html=True,
+            )
+        st.caption("Score = sum of the weights of signals found on the merchant's public pages, "
+                   "0–100. Existing Cashfree merchants are always Tier C.")  # fmt: skip
 
-st.markdown(
-    '<p class="muted">Data: public pages only, robots.txt respected. Gateway detection has '
-    "limited recall because payment scripts usually load only at the final payment step.</p>",
-    unsafe_allow_html=True,
-)
+    st.caption("Public pages only · robots.txt respected. Gateway detection is a floor: "
+               "most gateways load only at the final payment step.")  # fmt: skip
+
+nav.run()

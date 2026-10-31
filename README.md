@@ -134,7 +134,7 @@ seeds/*.csv → ingest → clean → crawl → detect → score → export → S
 config/            fingerprints.yaml · icp.yaml · crawl.yaml   ← tune without code
 data/seeds/        hand-built company lists (d2c, edtech, saas)
 src/leadintel/     ingest · clean · crawl · detect · score · openers · export · schemas · db · run
-app/               Home.py + pages/ (Lead Explorer, Competitor Landscape, Lead Detail)
+app/               Home.py (navigation + sidebar) + views/ (Overview, Lead Explorer, Competitor Landscape, Lead Detail)
 tests/             98 tests + saved HTML fixtures (no internet needed)
 exports/           leads.parquet (read by the app) · hubspot_companies.csv · leads_tier_A.csv
 docs/              ICP personas · cold emails · insight note · accuracy check · screenshots

@@ -7,24 +7,35 @@ from streamlit.testing.v1 import AppTest
 
 APP = Path(__file__).resolve().parents[1] / "app"
 DATA = Path(__file__).resolve().parents[1] / "exports" / "leads.parquet"
+HOME = str(APP / "Home.py")
 
 pytestmark = pytest.mark.skipif(not DATA.exists(), reason="run the pipeline first")
 
 
 @pytest.mark.parametrize(
     "page",
-    ["Home.py", "pages/1_Lead_Explorer.py", "pages/2_Competitor_Landscape.py",
-     "pages/3_Lead_Detail.py"],
+    [None, "views/lead_explorer.py", "views/competitor_landscape.py", "views/lead_detail.py"],
 )  # fmt: skip
 def test_page_renders(page):
-    at = AppTest.from_file(str(APP / page), default_timeout=60).run()
+    at = AppTest.from_file(HOME, default_timeout=60).run()
+    if page:
+        at.switch_page(page).run()
     assert not at.exception, at.exception
 
 
 @pytest.mark.parametrize("domain", ["livpure.com", "lenskart.com", "animaker.com"])
 def test_lead_detail_for_crawled_and_blocked_sites(domain):
-    at = AppTest.from_file(str(APP / "pages/3_Lead_Detail.py"), default_timeout=60)
+    at = AppTest.from_file(HOME, default_timeout=60)
     at.query_params["domain"] = domain
     at.run()
+    at.switch_page("views/lead_detail.py").run()
     assert not at.exception, at.exception
-    assert domain in at.selectbox[0].value
+    assert any(sb.value == domain for sb in at.selectbox)
+
+
+def test_explorer_filters_narrow_the_list():
+    at = AppTest.from_file(HOME, default_timeout=60).run()
+    at.switch_page("views/lead_explorer.py").run()
+    at.text_input(key="f_search").input("livpure").run()
+    assert not at.exception, at.exception
+    assert at.session_state["_keep_f_search"] == "livpure"
