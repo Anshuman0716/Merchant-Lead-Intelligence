@@ -2,7 +2,7 @@
 
 # Create the virtualenv and install everything (dev + browser extras)
 setup:
-	uv sync --all-extras
+	uv sync --all-extras --all-groups
 	uv run playwright install chromium
 
 # Only the crawl stage (slow, network). Add ARGS=--refresh to ignore the cache.

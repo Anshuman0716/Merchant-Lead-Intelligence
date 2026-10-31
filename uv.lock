@@ -475,6 +475,8 @@ dependencies = [
 browser = [
     { name = "playwright" },
 ]
+
+[package.dev-dependencies]
 dev = [
     { name = "pytest" },
     { name = "ruff" },
@@ -490,14 +492,18 @@ requires-dist = [
     { name = "plotly", specifier = ">=5.20" },
     { name = "polars", specifier = ">=1.0" },
     { name = "pyarrow", specifier = ">=15" },
-    { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0" },
     { name = "pyyaml", specifier = ">=6.0" },
-    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.5" },
     { name = "selectolax", specifier = ">=0.3.21" },
     { name = "streamlit", specifier = ">=1.36" },
     { name = "tenacity", specifier = ">=8.2" },
 ]
-provides-extras = ["dev", "browser"]
+provides-extras = ["browser"]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "pytest", specifier = ">=8.0" },
+    { name = "ruff", specifier = ">=0.5" },
+]
 
 [[package]]
 name = "markupsafe"

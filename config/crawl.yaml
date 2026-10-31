@@ -1,5 +1,5 @@
 # Polite crawler settings. Only public pages, robots.txt respected, no logins/forms/checkout.
-user_agent: "LeadIntelBot/0.1 (https://github.com/Anshuman0716/Merchant-Lead-Intelligence; research crawler, public pages only)"
+user_agent: "LeadIntelBot/0.1 (+https://github.com/Anshuman0716/Merchant-Lead-Intelligence; research crawler, public pages only)"
 timeout_seconds: 10
 retries: 2
 min_delay_per_domain_seconds: 2.0

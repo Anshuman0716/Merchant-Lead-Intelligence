@@ -34,7 +34,7 @@ def read_table(name: str, conn: duckdb.DuckDBPyConnection | None = None) -> pl.D
     own = conn is None
     conn = conn or get_conn()
     try:
-        return conn.execute(f'SELECT * FROM "{name}"').pl()
+        return conn.sql(f'SELECT * FROM "{name}"').pl()
     finally:
         if own:
             conn.close()

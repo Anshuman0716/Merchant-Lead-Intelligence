@@ -1,9 +1,9 @@
 """Run the whole pipeline (or selected stages) and print timings.
 
-    python -m leadintel.run                 # all stages
-    python -m leadintel.run --only crawl    # one stage
-    python -m leadintel.run --from detect   # this stage and everything after it
-    python -m leadintel.run --refresh       # crawl ignores the HTML cache
+python -m leadintel.run                 # all stages
+python -m leadintel.run --only crawl    # one stage
+python -m leadintel.run --from detect   # this stage and everything after it
+python -m leadintel.run --refresh       # crawl ignores the HTML cache
 """
 
 from __future__ import annotations

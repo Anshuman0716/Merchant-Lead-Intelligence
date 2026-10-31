@@ -41,6 +41,7 @@ class Companies(pa.DataFrameModel):
     source: str = pa.Field(nullable=True)
     funding_stage: str = pa.Field(nullable=True, isin=FUNDING_STAGES)
     last_funding_date: pl.Date = pa.Field(nullable=True)
+    homepage_url: str  # final URL after redirects; the crawler starts here
     is_valid: bool
     quarantine_reason: str = pa.Field(nullable=True)
 
