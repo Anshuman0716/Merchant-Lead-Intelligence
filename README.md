@@ -1,118 +1,75 @@
 # Merchant Lead Intelligence Engine
 
-> It tells a payments SDR which merchants to call first, why, and what to say.
+> **It tells a payments SDR which merchants to call first, why, and what to say.**
 
-Takes 300–500 Indian online businesses (D2C, edtech, SaaS), detects their payment setup from
-public website signals, scores them against 3 ICPs, and outputs a tiered, CRM-ready lead list
-with personalised openers — plus a dashboard and a one-page insight note.
+[![CI](https://github.com/Anshuman0716/Merchant-Lead-Intelligence/actions/workflows/ci.yml/badge.svg)](https://github.com/Anshuman0716/Merchant-Lead-Intelligence/actions/workflows/ci.yml)
+**Live demo:** _link coming after deploy_ · **2-min walkthrough:** _video coming_
 
-🚧 Work in progress — Phases 0–4 done (universe, crawler, detection, scoring, dashboard, sales docs).
+![Overview](docs/screenshots/overview.png)
 
-## How to run
+## The problem
 
-```bash
-make setup      # install deps
-make pipeline   # rebuild everything from data/seeds/
-make app        # open the dashboard
-make test
-```
+SDRs at payment companies spend a large share of their week researching merchants: which
+platform they're on, which gateway they use, whether they sell subscriptions or abroad. Many of
+those leads turn out to be a poor fit. This project automates that research from public
+websites, so an SDR starts the day with a ranked list, a reason for each call, and a first line
+to say.
 
-Stages can be run alone: `uv run python -m leadintel.run --only crawl`, `--from detect`,
-`--refresh` (re-fetch cached pages), `--limit 10`.
+## What it does
 
-## Dashboard
+- **Builds a merchant universe:** 408 Indian D2C, edtech and SaaS businesses, cleaned and
+  deduplicated. Bad rows are quarantined with a reason, never deleted.
+- **Detects each merchant's payment setup from public pages:** platform, payment gateway (with an
+  evidence level), checkout layer, subscriptions, international sales, COD, EMI, apps and a public
+  contact email.
+- **Scores every merchant against 3 ICPs** with transparent rules: score 0–100, Tier A/B/C, top 3
+  reasons, BANT best guesses, suggested products and a one-line opener.
+- **Delivers it where sales teams work:** a 4-page Streamlit dashboard, a HubSpot import CSV, a
+  Tier A call list, 20 cold emails and a one-page insight note.
 
-`make app` (or `uv run streamlit run app/Home.py`) opens four pages, each answering an SDR question:
+## Results
 
-| Page | Question it answers |
+| | |
 |---|---|
-| Overview | How big is my opportunity? Tier counts, payment-stack KPIs, score distribution, call-first list |
-| Lead Explorer | Who do I call today? Filters (vertical, tier, platform, gateway, checkout layer, city, funding), CSV download |
-| Competitor Landscape | Who am I up against, and where? Gateway and checkout-layer share, competitor × vertical heatmap |
-| Lead Detail | What do I say? Score gauge, top 3 reasons, copyable opener, BANT, every signal with its evidence |
+| Merchants | 408 seeded → **364 valid** (202 D2C, 81 edtech, 81 SaaS) + 25 bot-blocked scored on seed data |
+| Leads | **389 scored: Tier A 55 (14%) · B 123 (32%) · C 211 (54%)** |
+| Pages crawled | 1,221 public pages from 362 sites (robots.txt respected) |
+| Platform | Shopify 154 · WooCommerce 5 · custom 204 |
+| Checkout layer visible | 38% of sites (GoKwik 90, Razorpay Magic 20, Shiprocket 15, Shopflo 13) |
+| Gateway visible | 9% of sites. Gateways load at the payment step, so this is a floor |
+| Detection accuracy | _pending: 40-site hand-labelled check ([how](docs/accuracy/))_ |
+| Tests | 98 passing, offline, in CI |
 
-The app reads `exports/leads.parquet` (committed), not the DuckDB file, so it deploys light.
-Lead pages are shareable: `/Lead_Detail?domain=livpure.com`.
+**Three insights** (full one-pager: [`docs/insight_note.pdf`](docs/insight_note.pdf)):
+1. **In D2C the checkout layer is the battleground, not the gateway.** 84% of Shopify brands run a
+   third-party checkout, and GoKwik alone is on 45% of D2C sites.
+2. **Where a gateway is visible, it's Razorpay** (28 of 32). 28 merchants show a single gateway,
+   a direct fit for the backup-route pitch.
+3. **Edtech is nearly invisible on the public web.** 2 of 80 sites show subscription pricing, so
+   this segment needs app-store and counsellor-led research instead.
 
-## Sales artefacts
+## The dashboard
 
-- [`docs/icp_personas.md`](docs/icp_personas.md): 3 ICP one-pagers
-- [`docs/cold_emails.md`](docs/cold_emails.md): 20 cold emails for Tier A leads (under 120 words each)
-- [`docs/insight_note.pdf`](docs/insight_note.pdf): one-page findings, built from the data by
-  `uv run --with reportlab python scripts/build_insight_note.py`
-
-## HubSpot import
-
-`exports/hubspot_companies.csv` maps to HubSpot companies. First create these custom company
-properties (Settings → Properties → Company): **Vertical**, **Lead tier**, **ICP score** (number),
-**Current gateway**, **Checkout layer**, **Suggested products**, **Top reasons**, **Opener**
-(multi-line text). Then go to Import → Companies → map columns. Name, domain, Industry, City and
-Country/Region map to built-in fields. The deal pipeline for 20 Tier A leads is simulated.
-
-## Pipeline
-
-| Stage | Module | Output table |
-|---|---|---|
-| 1. Ingest seed CSVs | `ingest.py` | `raw_companies` |
-| 2. Clean, dedupe, reachability check | `clean.py` | `companies` |
-| 3. Polite crawl (≤5 public pages/site) | `crawl.py` | `pages` |
-| 4. Fingerprint detection | `detect.py` | `signals` |
-| 5. ICP scoring, tiers, openers | `score.py` | `lead_scores` |
-| 6. Exports + dashboard | `export.py`, `app/` | `exports/` |
-
-## Current numbers
-
-- **Universe:** 408 seed companies → 364 valid (202 D2C, 81 edtech, 81 SaaS). 44 quarantined,
-  not deleted: 25 block bots (403/429 — respected, not bypassed), 16 dead/broken sites,
-  2 redirect to another company already in the list (Doubtnut → ALLEN, FabAlley → Indya), 1 other.
-- **Crawl:** 1,221 pages cached from 362 sites; 29 page fetches skipped because robots.txt disallows them.
-- **Platform:** Shopify 154, WooCommerce 5, custom 204.
-- **Checkout layer** found on 38% of sites (GoKwik 90, Razorpay Magic Checkout 20,
-  Shiprocket 15, Shopflo 13).
-- **Payment gateway** identified on 9% of sites (32): 9 high, 19 medium, 4 low confidence.
-- **Leads:** 389 scored (364 crawled + 25 bot-blocked sites scored on seed data only).
-  Tier A 55 (14%), B 123 (32%), C 211 (54%). By vertical — A: D2C 31, SaaS 23, edtech 1.
-
-## Ethics
-
-Only public pages. robots.txt respected. Max 1 request / 2 s per site. Honest user agent that
-links to this repo. No logins, no form submissions, no test orders, no checkout attempts.
-Sites that block bots are marked `blocked`, not bypassed. Contact emails are only kept when
-they are role-based (sales@, hello@, support@…) and on the company's own domain.
-
-## Detection: evidence levels
-
-The actual payment gateway usually loads only at the final payment step, which can't be reached
-without buying. So every gateway detection records *how* it was found:
-
-| Confidence | Evidence |
+| Page | SDR question it answers |
 |---|---|
-| high | The gateway's own script/SDK is on a public page (e.g. `checkout.razorpay.com`) |
-| medium | A checkout layer known to run on that gateway (Razorpay Magic Checkout → Razorpay) |
-| low | Gateway named in visible text or a payment logo, **next to payment words** |
+| **Overview** | How big is my opportunity? Tier counts, payment-stack KPIs, score distribution, call-first list |
+| **Lead Explorer** | Who do I call today? Filters (vertical, tier, platform, gateway, checkout layer, city, funding) and CSV download |
+| **Competitor Landscape** | Who am I up against, and where? Gateway and checkout-layer share, competitor × vertical heatmap |
+| **Lead Detail** | What do I say? Score gauge, top 3 reasons, copyable opener, BANT, every signal with its evidence |
 
-## Fingerprint verification — what the real pages taught me
+| Lead Detail | Lead Explorer |
+|---|---|
+| ![Lead detail](docs/screenshots/lead_detail.png) | ![Lead explorer](docs/screenshots/lead_explorer.png) |
 
-Rules live in [`config/fingerprints.yaml`](config/fingerprints.yaml). I checked every rule
-against the cached pages and fixed these:
-
-1. `"paypal"` appears on **every** Shopify page (a built-in tracking flag) → only the PayPal SDK URL counts.
-2. Paytm / PhonePe appear as UPI-app icons and promo names ("PhonePe flat 20% off") → script-only rules.
-3. Edtech sites show Razorpay/CCAvenue as **hiring-partner logos**; SaaS sites quote Razorpay in
-   testimonials; founder bios mention "CEO of Cashfree Payments". Low-confidence matches now
-   need payment words nearby (e.g. "payment partners: Razorpay PayU").
-4. A vendor's own site doesn't count as using its product (chargebee.com ≠ "uses Chargebee").
-5. Scanning all script hosts found patterns I hadn't listed: Razorpay payment links (`rzp.io`),
-   Recurpay subscriptions, Snapmint pay-later on 31 D2C sites.
-
-Detection accuracy against a 40-site hand-labelled sample: _pending_ (see
-[`docs/accuracy/`](docs/accuracy/)).
+Lead pages are shareable links, e.g. `/Lead_Detail?domain=livpure.com`.
 
 ## How scoring works
 
-Each company is scored on the ICP that matches its vertical (personas: [`docs/icp_personas.md`](docs/icp_personas.md)).
-Score = sum of the weights of signals that are true, clipped to 0–100. Tier A ≥ 40, B ≥ 25, else C.
-Weights live in [`config/icp.yaml`](config/icp.yaml) — a sales manager can change them without code.
+Each company is scored on the ICP that matches its vertical (one-pagers:
+[`docs/icp_personas.md`](docs/icp_personas.md)). **Score = sum of the weights of signals that are
+true, clipped to 0–100. Tier A ≥ 40, B ≥ 25, else C.** I chose transparent rules over a model
+because a sales manager has to trust the score and be able to change it. Weights live in
+[`config/icp.yaml`](config/icp.yaml), with no code involved.
 
 | Signal | D2C growth | Edtech subscription | SaaS global |
 |---|---|---|---|
@@ -130,21 +87,93 @@ Weights live in [`config/icp.yaml`](config/icp.yaml) — a sales manager can cha
 | Public pricing page | 0 | +5 | +5 |
 | Public business email | +5 | +5 | +5 |
 
-Every lead stores its **top 3 reasons** in plain English, BANT best guesses (marked "to verify on
-call"), up to 3 suggested products and a one-line opener chosen from its strongest reason.
+Openers are one sentence, under 30 words, always a question, and chosen from the lead's
+strongest reason. They never claim anything the public pages don't show.
 
-### Tuning log
+### Tuning log (what I changed after reading the leads)
 
-1. **Razorpay Magic Checkout was counted three times** (competitor gateway + single gateway +
-   checkout layer = 40 points from one script, and three reasons saying the same thing). Now a
-   checkout layer that reveals the gateway only scores as a gateway signal.
-2. **Added two signals the plan didn't have.** *Paid checkout layer* (+10 D2C): gateways are
-   visible on only 9% of sites but checkout layers on 38%, and paying for GoKwik shows a brand
-   cares about conversion. *EMI / instalments* (+15 edtech): matches the edtech pain (course-fee EMIs).
-3. **Lowered tier thresholds from A ≥ 65 / B ≥ 40 to A ≥ 40 / B ≥ 25.** With funding data still
-   empty and gateway signals rare, almost nothing could reach 65 (2% Tier A). Adjusted
-   thresholds, not data. Revisit once funding dates are filled in.
+1. **Razorpay Magic Checkout was being counted three times** (competitor gateway + single gateway +
+   checkout layer = 40 points from one script). A checkout layer that reveals the gateway now
+   scores only as a gateway signal.
+2. **Added two signals.** *Paid checkout layer* (+10 D2C): gateways are visible on only 9% of sites
+   but checkout layers on 38%. *EMI / instalments* (+15 edtech): matches the course-fee EMI pain.
+3. **Lowered tiers from A ≥ 65 / B ≥ 40 to A ≥ 40 / B ≥ 25.** With funding data still empty and
+   gateway signals rare, only 2% of leads reached A. I adjusted the thresholds, not the data.
 
-Known gaps from the sanity review: edtech sites expose few payment signals on public pages
-(1 Tier A edtech lead); company size isn't scored, so very large companies (Freshworks, Postman)
-can land in Tier A even though they'd be enterprise-sales accounts.
+## How detection works
+
+The gateway usually loads only at the final payment step, which you can't reach without buying.
+So every detection stores **how** it was found, and the evidence is shown in the app:
+
+| Confidence | Evidence |
+|---|---|
+| high | The gateway's own script is on a public page (e.g. `checkout.razorpay.com`) |
+| medium | A checkout layer known to run on that gateway (Razorpay Magic Checkout → Razorpay) |
+| low | Gateway named in visible text or a payment logo, **next to payment words** |
+
+**What the real pages taught me** (rules: [`config/fingerprints.yaml`](config/fingerprints.yaml)):
+1. `"paypal"` appears on *every* Shopify page as a built-in flag, so only the PayPal SDK URL counts.
+2. Paytm and PhonePe appear as UPI-app icons and promo names ("PhonePe flat 20% off"), so those
+   rules are script-only.
+3. Edtech sites show Razorpay as a **hiring-partner logo**, SaaS sites quote it in testimonials,
+   and founder bios say "CEO of Cashfree Payments". Low-confidence matches now need payment words
+   nearby, which removed 10 false positives.
+4. A vendor's own site doesn't count as using its product (chargebee.com ≠ "uses Chargebee").
+
+## Architecture
+
+A 6-stage batch pipeline. Every stage reads from and writes to one DuckDB file and validates its
+output with a Pandera schema, so any stage can be re-run on its own.
+
+```
+seeds/*.csv → ingest → clean → crawl → detect → score → export → Streamlit app / HubSpot CSV
+            raw_companies  companies  pages  signals  lead_scores   exports/
+```
+
+```
+config/            fingerprints.yaml · icp.yaml · crawl.yaml   ← tune without code
+data/seeds/        hand-built company lists (d2c, edtech, saas)
+src/leadintel/     ingest · clean · crawl · detect · score · openers · export · schemas · db · run
+app/               Home.py + pages/ (Lead Explorer, Competitor Landscape, Lead Detail)
+tests/             98 tests + saved HTML fixtures (no internet needed)
+exports/           leads.parquet (read by the app) · hubspot_companies.csv · leads_tier_A.csv
+docs/              ICP personas · cold emails · insight note · accuracy check · screenshots
+scripts/           insight note builder · screenshot capture
+```
+
+**Stack:** Python 3.12 · httpx + tenacity (polite async crawler) · selectolax · Polars + DuckDB ·
+Pandera · YAML config · Streamlit + Plotly · pytest · ruff · uv · GitHub Actions.
+
+## How to run
+
+```bash
+make setup      # uv sync + Playwright browser
+make pipeline   # rebuild everything from data/seeds/ (uses the HTML cache; add ARGS=--refresh to re-crawl)
+make app        # open the dashboard
+make test       # 98 tests, offline
+```
+
+On Windows without GNU make, use `mingw32-make` or the commands inside the
+[Makefile](Makefile). Run one stage with `uv run python -m leadintel.run --only crawl`,
+or start from a stage with `--from detect`.
+
+## Ethics and limitations
+
+- **Public pages only.** robots.txt respected, max 1 request every 2 s per site, an honest user
+  agent linking to this repo. No logins, no form submissions, no test orders, no checkout attempts.
+  Sites that block bots are marked `blocked` and never bypassed.
+- **Contact emails** are kept only when they're role-based (sales@, hello@…) and on the company's
+  own domain. No personal addresses.
+- **Gateway recall is limited**, because most gateways load only at the payment step.
+- **The sample is hand-built** and not representative of all Indian merchants.
+- **Funding data is still being filled in.** Funding is worth 15–20 points, so tiers will shift.
+- **Company size isn't scored**, so very large companies (Freshworks, Postman) can reach Tier A
+  even though they'd be enterprise accounts.
+- **The HubSpot deal pipeline is simulated** for demonstration.
+
+## What I'd build next
+
+- LLM-drafted openers (numbers and claims still taken only from detected signals)
+- Hiring and traffic signals to estimate payment volume
+- An ML score trained on real conversion outcomes once a CRM history exists
+- App-store signals for edtech, where the website says little
